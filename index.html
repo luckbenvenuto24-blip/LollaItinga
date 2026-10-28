@@ -1,0 +1,1509 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Cardápio · Sorveteria Lolla</title>
+  <meta name="description" content="Cardápio digital da Sorveteria Lolla — potes, picolés, açaí e milkshakes. Peça pelo WhatsApp, fazemos entrega!">
+  <meta name="theme-color" content="#D6154A">
+  <meta property="og:title" content="Cardápio · Sorveteria Lolla">
+  <meta property="og:description" content="Potes, picolés, açaí e milkshakes. Toque para ver o cardápio e peça pelo WhatsApp!">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="/assets/marca/logo-lolla.jpg">
+  
+  <link rel="icon" href="/assets/marca/vaquinha.webp">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Figtree:wght@400;600;700;800&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+
+<header class="topo">
+  <!-- Botão indicador (aparece SOMENTE para o Dono/Admin autenticado) -->
+  <button id="btn-modo-admin" class="btn-toggle-admin" onclick="desconectarAdmin()" title="Clique para sair do modo lojista">
+    👤 Dono Conectado (Sair)
+  </button>
+
+  <!-- Partículas decorativas (gotinhas/confetes brancos espalhados no fundo rosa) -->
+  <div class="hero-particulas" aria-hidden="true">
+    <span></span><span></span><span></span><span></span>
+    <span></span><span></span><span></span><span></span>
+    <span></span><span></span><span></span><span></span>
+  </div>
+
+  <!-- Barra de Navegação Superior Premium Estilo Mockup Oficial -->
+  <div class="env hero-nav">
+    <a href="#" class="hero-marca">
+      <div class="hero-logo-roundel">
+        <img class="hero-logo" src="/assets/marca/logo-lolla.webp" alt="Sorvetes Lolla" width="110" height="78">
+      </div>
+    </a>
+
+    <!-- Barra de Busca Central em Pílula (Estilo Imagem 2) -->
+    <div class="busca-topo-capsula">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true">
+        <circle cx="11" cy="11" r="7"/>
+        <path d="m20 20-3.5-3.5"/>
+      </svg>
+      <input id="q" type="text" placeholder="Buscar sabor ou produto..." aria-label="Buscar no cardápio" autocomplete="off">
+      <button type="button" id="busca-limpar" class="busca-limpar" style="display:none" title="Limpar pesquisa" onclick="limparBusca()">✕</button>
+    </div>
+
+    <!-- Botão Meu Pedido / Carrinho com Notificação (Abre Gaveta Lateral Direita) -->
+    <a id="hero-nav-zap" class="btn-meu-pedido-topo" href="javascript:void(0)" onclick="abrirCarrinho(event)" role="button" aria-label="Abrir carrinho de compras">
+      <span class="icone-carrinho">🛒</span>
+      <span class="texto-carrinho">Meu Pedido</span>
+      <span class="seta-carrinho">→</span>
+      <span class="badge-carrinho" id="badge-carrinho-qtd">0</span>
+    </a>
+  </div>
+
+
+  <!-- Painel administrativo (100% invisível para clientes, visível apenas após login do Dono) -->
+  <div class="env" style="position:relative;z-index:10">
+    <div class="painel-admin">
+      <div class="painel-admin-cabeca">
+        <div class="painel-admin-titulo">
+          <span>🛠️</span> <strong>Painel do Administrador</strong> — Gerencie produtos, categorias, destaque e mural
+        </div>
+        <div class="painel-admin-acoes">
+          <button class="btn-admin" onclick="abrirModalNovoProduto()">➕ Adicionar Produto</button>
+          <button class="btn-admin secundario" onclick="abrirModalCategorias()">📂 Categorias</button>
+          <button class="btn-admin secundario" onclick="abrirModalCasquinhas()">🍦 6 Casquinhas</button>
+          <button class="btn-admin secundario" onclick="abrirModalDestaque()">✨ Card de Destaque</button>
+          <button class="btn-admin secundario" onclick="abrirModalBlog(-1)">📝 Novo Card no Blog</button>
+          <button class="btn-admin secundario" onclick="abrirModalConfig()">⚙️ Dados da Loja</button>
+          <button class="btn-admin secundario" onclick="abrirModalSenha()">🔑 Alterar Senha</button>
+          <button class="btn-admin perigo" onclick="restaurarPadrao()" title="Restaura os 55 itens de fábrica">🔄 Restaurar Padrão</button>
+          <button class="btn-admin perigo" onclick="desconectarAdmin()">🚪 Sair</button>
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--tinta-fraca);line-height:1.4">
+        💡 <b>Modo de Edição Ativo:</b> Você pode <b>ocultar</b> (fica salvo só para você e invisível para os clientes), <b>editar</b> ou <b>excluir</b> qualquer categoria, produto, seção das 6 casquinhas, Card de Destaque ou Mural/Blog!
+      </div>
+    </div>
+  </div>
+
+  <!-- Banner Hero Oficial Sorvetes Lolla - Responsivo (Desktop para PC & Mobile para Celular) -->
+  <div class="hero-banner-wrap">
+    <div class="hero-banner-card-premium">
+      <picture class="hero-banner-picture">
+        <!-- Versão Mobile (Smartphones e celulares até 768px) -->
+        <source media="(max-width: 768px)" srcset="/assets/marca/banner-hero-mobile.webp?v=4" type="image/webp">
+        <source media="(max-width: 768px)" srcset="/assets/marca/banner-hero-mobile.jpg?v=4" type="image/jpeg">
+        <!-- Versão Desktop / PC (Computadores e telas acima de 768px) -->
+        <source media="(min-width: 769px)" srcset="/assets/marca/banner-hero-desktop.webp?v=4" type="image/webp">
+        <source media="(min-width: 769px)" srcset="/assets/marca/banner-hero-desktop.jpg?v=4" type="image/jpeg">
+        <!-- Imagem padrão oficial -->
+        <img src="/assets/marca/banner-hero-desktop.webp?v=4"
+             alt="Sorvetes Lolla - Mais sabor no seu dia!"
+             class="hero-banner-img-premium"
+             width="2048"
+             height="748"
+             fetchpriority="high">
+      </picture>
+      <!-- Elementos ocultos mantidos para compatibilidade com app.js -->
+      <span id="hero-stat-sabores" style="display:none">151</span>
+      <span id="hero-stat-cats" style="display:none">23</span>
+      <a id="hero-cta-zap" href="https://wa.me/5547974003728?text=Ol%C3%A1!%20Quero%20fazer%20um%20pedido%20pelo%20card%C3%A1pio." style="display:none"></a>
+    </div>
+  </div>
+
+  <!-- Galeria extra oculta por padrão (mantida no DOM para compatibilidade) -->
+  <div id="galeria-topo" style="display:none"></div>
+</header>
+
+<!-- Seção 1: Nossos Produtos (Ícones em Carrossel/Grade - Estilo Imagem 2 & Imagem 1) -->
+<section id="secao-nossos-produtos-icones" class="secao-nossos-produtos-icones env">
+  <div class="nossos-produtos-titulo-wrap">
+    <h2 class="nossos-produtos-titulo">
+      Nossos Produtos <span class="destaques-raios">ヾ</span>
+    </h2>
+  </div>
+  <div class="categorias-icones-scroll" id="categorias-icones-scroll">
+    <button type="button" class="cat-icone-card ativo" onclick="selecionarCategoriaIcone('Copão Açaí')">
+      <div class="cat-icone-img-wrap">
+        <img src="/assets/marca/cat-copao-acai.webp" alt="Copão Açaí" width="72" height="80">
+      </div>
+      <span class="cat-icone-label">Copão Açaí</span>
+      <span class="cat-indicador-barra"></span>
+    </button>
+    <button type="button" class="cat-icone-card" onclick="selecionarCategoriaIcone('Copão')">
+      <div class="cat-icone-img-wrap">
+        <img src="/assets/marca/cat-copao.webp" alt="Copão" width="72" height="80">
+      </div>
+      <span class="cat-icone-label">Copão</span>
+      <span class="cat-indicador-barra"></span>
+    </button>
+    <button type="button" class="cat-icone-card" onclick="selecionarCategoriaIcone('Supremo')">
+      <div class="cat-icone-img-wrap">
+        <img src="/assets/marca/cat-supremo.webp" alt="Supremo" width="72" height="80">
+      </div>
+      <span class="cat-icone-label">Supremo</span>
+      <span class="cat-indicador-barra"></span>
+    </button>
+    <button type="button" class="cat-icone-card" onclick="selecionarCategoriaIcone('Picolés Premium Spettacolo')">
+      <div class="cat-icone-img-wrap">
+        <img src="/assets/marca/cat-picoles-premium.webp" alt="Picolés Premium" width="72" height="80">
+      </div>
+      <span class="cat-icone-label">Picolés Premium</span>
+      <span class="cat-indicador-barra"></span>
+    </button>
+    <button type="button" class="cat-icone-card" onclick="selecionarCategoriaIcone('Corneto')">
+      <div class="cat-icone-img-wrap">
+        <img src="/assets/marca/cat-corneto.webp" alt="Corneto" width="72" height="80">
+      </div>
+      <span class="cat-icone-label">Corneto</span>
+      <span class="cat-indicador-barra"></span>
+    </button>
+    <button type="button" class="cat-icone-card" onclick="selecionarCategoriaIcone('Picolés Cremosos')">
+      <div class="cat-icone-img-wrap">
+        <img src="/assets/marca/cat-picoles-cremosos.webp" alt="Picolés Cremosos" width="72" height="80">
+      </div>
+      <span class="cat-icone-label">Picolés Cremosos</span>
+      <span class="cat-indicador-barra"></span>
+    </button>
+    <button type="button" class="cat-icone-card" onclick="selecionarCategoriaIcone('Açaí Monte o Seu!!!')">
+      <div class="cat-icone-img-wrap">
+        <img src="/assets/marca/cat-acai-monte.webp" alt="Açaí Monte o Seu" width="72" height="80">
+      </div>
+      <span class="cat-icone-label">Açaí Monte o Seu</span>
+      <span class="cat-indicador-barra"></span>
+    </button>
+    <button type="button" class="cat-icone-card" onclick="selecionarCategoriaIcone('Açaí no Pote!')">
+      <div class="cat-icone-img-wrap">
+        <img src="/assets/marca/cat-acai-pote.webp" alt="Açaí no Pote" width="72" height="80">
+      </div>
+      <span class="cat-icone-label">Açaí no Pote</span>
+      <span class="cat-indicador-barra"></span>
+    </button>
+    <button type="button" class="cat-icone-card" onclick="selecionarCategoriaIcone('Milkshake\'s')">
+      <div class="cat-icone-img-wrap">
+        <img src="/assets/marca/cat-milkshakes.webp" alt="Milkshake's" width="72" height="80">
+      </div>
+      <span class="cat-icone-label">Milkshake's</span>
+      <span class="cat-indicador-barra"></span>
+    </button>
+  </div>
+</section>
+
+<!-- Seção 2: Destaques do Momento (Estilo Imagem 2 & Imagem 1) -->
+<section id="secao-destaques-momento" class="secao-destaques-momento env">
+  <div class="destaques-topo-linha">
+    <h2 class="destaques-titulo">
+      <span class="destaques-parte-vermelha">Destaques do</span>
+      <span class="destaques-parte-verde">Momento</span>
+      <span class="destaques-raios">ヾ</span>
+    </h2>
+    <a href="#secao-produtos-topo" class="btn-ver-todos">Ver todos →</a>
+  </div>
+  <div id="grade-destaques-momento" class="destaques-grade-cards">
+    <!-- Gerado dinamicamente no app.js -->
+  </div>
+</section>
+
+<!-- Seção 3: Banners Promocionais Duplos (Milkshakes & Picolés Premium) -->
+<section class="secao-promos-dupla env">
+  <div class="promos-grade">
+    <a href="javascript:void(0)" onclick="selecionarCategoriaIcone('Milkshake\'s')" class="promo-banner-card" aria-label="Milkshake's Irresistíveis - Ver sabores">
+      <img src="/assets/marca/promo-milkshakes.webp" alt="Milkshake's Irresistíveis" width="952" height="264" loading="lazy">
+    </a>
+    <a href="javascript:void(0)" onclick="selecionarCategoriaIcone('Picolés Premium Spettacolo')" class="promo-banner-card" aria-label="Picolés Premium - Conheça">
+      <img src="/assets/marca/promo-picoles.webp" alt="Picolés Premium" width="952" height="264" loading="lazy">
+    </a>
+  </div>
+</section>
+
+<!-- Seção 4: Faixa de Diferenciais de Qualidade (4 Ícones - Estilo Imagem 1 e 2) -->
+<section class="secao-diferenciais">
+  <div class="env diferenciais-grade">
+    <div class="diferencial-card">
+      <div class="diferencial-icone-wrap">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2C6.5 2 2 6.5 2 12c0 3.5 2 6.5 5 8 .5-1 1-2.5 1-4 0-3 2-6 5-7-1 2-1 4-1 6 0 2 1 3 2 4 4-1 7-4 7-8 0-6-4.5-11-10-11z"/></svg>
+      </div>
+      <div class="diferencial-conteudo">
+        <strong>100% Artesanal</strong>
+        <span>e Cremoso</span>
+      </div>
+    </div>
+    <div class="diferencial-card">
+      <div class="diferencial-icone-wrap">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="6 3 18 3 22 9 12 22 2 9 6 3"/><line x1="2" y1="9" x2="22" y2="9"/></svg>
+      </div>
+      <div class="diferencial-conteudo">
+        <strong>Ingredientes</strong>
+        <span>de Qualidade</span>
+      </div>
+    </div>
+    <div class="diferencial-card">
+      <div class="diferencial-icone-wrap">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="7" cy="17" r="3"/><circle cx="17" cy="17" r="3"/><path d="M10 17h4"/><path d="M5 17H3v-5l3-4h6l2 4h3v5h-2"/></svg>
+      </div>
+      <div class="diferencial-conteudo">
+        <strong>Entrega Rápida</strong>
+        <span>e Segura</span>
+      </div>
+    </div>
+    <div class="diferencial-card">
+      <div class="diferencial-icone-wrap">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+      </div>
+      <div class="diferencial-conteudo">
+        <strong>O Sabor</strong>
+        <span>que Todo Mundo Ama</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Cabeçalho do Cardápio Completo -->
+<section id="secao-produtos-topo" class="produtos-cabeca">
+  <div class="env produtos-cabeca-miolo">
+    <span class="produtos-subtitulo">CARDÁPIO COMPLETO</span>
+    <h2 class="produtos-titulo-principal">NOSSOS SABORES</h2>
+    <div id="abas" class="abas" role="tablist" aria-label="Tipo de cardápio"></div>
+    <div id="chips" class="chips" role="tablist" aria-label="Categorias" style="margin-top:10px"></div>
+  </div>
+</section>
+
+<main class="env">
+  <!-- Lista de Produtos com Design Premium e Cards Elegantes (Estilo Imagens Oficiais) -->
+  <div id="lista"></div>
+
+  <!-- Seção 6 Casquinhas Juntas Sem Fundo ("GET BUNDLE PACK TO ENJOY WITH YOUR FRIENDS") -->
+  <div id="secao-casquinhas"></div>
+
+  <!-- Card de Destaque Especial / Mensagem Comemorativa (Estilo "We Love Cheesecake" - Ref 2) -->
+  <div id="secao-destaque"></div>
+
+  <!-- Seção Blog / Mural de Novidades Transparente e Interativo (Estilo "Our Blog" - Ref 2) -->
+  <div id="secao-blog"></div>
+
+  <section id="secao-entregas" class="entregas">
+    <h3>Fazemos <em>entregas!</em></h3>
+    <p>Receba seus sabores favoritos no conforto da sua casa, com praticidade e rapidez.</p>
+    <a href="https://wa.me/5547974003728?text=Ol%C3%A1!%20Quero%20fazer%20um%20pedido%20pelo%20card%C3%A1pio." target="_blank" rel="noopener">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M12 2C6.5 2 2 6.5 2 12c0 1.8.5 3.4 1.3 4.9L2 22l5.3-1.3c1.4.8 3 1.2 4.7 1.2 5.5 0 10-4.5 10-10S17.5 2 12 2zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3.1.8.8-3-.2-.3C4.1 15 3.7 13.5 3.7 12c0-4.6 3.7-8.3 8.3-8.3s8.3 3.7 8.3 8.3-3.7 8.2-8.3 8.2z"/>
+        <path d="M17.5 14.4c-.3-.2-1.7-.9-2-1-.3-.1-.5-.1-.7.1-.2.3-.7 1-.9 1.2-.2.2-.3.2-.6.1-1.6-.8-2.7-1.5-3.8-3.3-.3-.5.3-.5.8-1.5.1-.2 0-.4 0-.5s-.7-1.6-.9-2.2c-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.5s1.1 2.9 1.2 3.1c.1.2 2.1 3.2 5 4.4 1.9.8 2.6.9 3.5.7.6-.1 1.7-.7 1.9-1.4.2-.7.2-1.2.2-1.4-.1-.1-.3-.2-.6-.3z"/>
+      </svg> 
+      Faça seu pedido pelo WhatsApp
+    </a>
+    <div class="info">
+      <span>📍 Também temos retirada no local</span>
+      <span>🍦 Sabores sujeitos à disponibilidade</span>
+    </div>
+  </section>
+</main>
+
+<!-- Transição Ondulada de Sorvete Derretendo com Botão WhatsApp (Estilo Imagem 1 e 2) -->
+<div class="onda-derretendo-transicao">
+  <svg class="onda-derretendo-svg" viewBox="0 0 1440 90" preserveAspectRatio="none">
+    <path d="M0,25 C180,60 320,10 480,42 C640,75 800,15 960,52 C1120,85 1280,25 1440,45 L1440,90 L0,90 Z" fill="#75040B"></path>
+  </svg>
+  <div class="cta-zap-flutuante-wrap">
+    <a id="btn-zap-rodape-flutuante" href="javascript:void(0)" onclick="abrirCarrinho(event)" class="btn-zap-grande-flutuante">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.5 2 2 6.5 2 12c0 1.8.5 3.4 1.3 4.9L2 22l5.3-1.3c1.4.8 3 1.2 4.7 1.2 5.5 0 10-4.5 10-10S17.5 2 12 2zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3.1.8.8-3-.2-.3C4.1 15 3.7 13.5 3.7 12c0-4.6 3.7-8.3 8.3-8.3s8.3 3.7 8.3 8.3-3.7 8.2-8.3 8.2z"/></svg>
+      <span>Fazer meu pedido no WhatsApp</span>
+      <span class="zap-seta">→</span>
+    </a>
+  </div>
+</div>
+
+<footer class="pe" id="pe">
+  <div class="env">
+    <b>Sorvetes Lolla</b><br>
+    Sorvetes, Açaís e Sobremesas Artesanais · Feito com Amor e Sabor!<br>
+    <span class="link-acesso-admin" onclick="abrirModalLogin()" title="Área Restrita do Lojista">🔒 Área Restrita</span>
+  </div>
+</footer>
+
+<!-- Vaquinha Mascote Oficial Lolla (Fixa no Lado Direito, Leve & Animada) -->
+<aside class="vaquinha-mascote-wrap" aria-hidden="true" title="Mascote Vaquinha Lolla">
+  <img src="/assets/marca/vaquinha-mascote-opt.webp"
+       alt="Vaquinha Lolla"
+       class="vaquinha-mascote-img"
+       width="466"
+       height="700"
+       loading="eager"
+       fetchpriority="high">
+</aside>
+
+<!-- Botão Flutuante 'Meu Pedido' que segue a rolagem da tela em tempo real -->
+<a id="btn-meu-pedido-flutuante"
+   class="btn-meu-pedido-flutuante"
+   href="javascript:void(0)"
+   onclick="abrirCarrinho(event)"
+   role="button"
+   aria-label="Abrir carrinho de compras com meus pedidos">
+  <span class="icone-carrinho">🛒</span>
+  <span class="texto-carrinho">Meu Pedido</span>
+  <span class="valor-carrinho-flutuante" id="valor-carrinho-flutuante" style="display:none"></span>
+  <span class="seta-carrinho">→</span>
+  <span class="badge-carrinho" id="badge-carrinho-flutuante-qtd">0</span>
+</a>
+
+<!-- ========================================================
+     GAVETA LATERAL DO CARRINHO (LADO DIREITO)
+     ======================================================== -->
+<div id="drawer-carrinho" class="drawer-carrinho-overlay" aria-hidden="true" onclick="if(event.target===this)fecharCarrinho()">
+  <aside class="drawer-carrinho-conteudo" role="dialog" aria-label="Carrinho de Compras da Sorveteria Lolla">
+    
+    <!-- Cabeçalho da Gaveta -->
+    <div class="drawer-carrinho-cabeca">
+      <div class="drawer-carrinho-titulo-wrap">
+        <span class="drawer-carrinho-icone">🛒</span>
+        <div>
+          <h2 class="drawer-carrinho-titulo">Meus Pedidos</h2>
+          <span class="drawer-carrinho-subtitulo" id="carrinho-subtitulo">0 itens adicionados</span>
+        </div>
+      </div>
+      <button type="button" class="btn-fechar-drawer" onclick="fecharCarrinho()" aria-label="Fechar carrinho" title="Fechar carrinho">✕</button>
+    </div>
+
+    <!-- Lista de Itens do Carrinho -->
+    <div class="drawer-carrinho-corpo" id="carrinho-lista-itens">
+      <!-- Gerado dinamicamente via app.js -->
+    </div>
+
+    <!-- Rodapé com Total e Botão para Enviar à Empresa no WhatsApp -->
+    <div class="drawer-carrinho-rodape" id="carrinho-rodape">
+      <div class="carrinho-resumo-linha">
+        <span>Quantidade total:</span>
+        <strong id="carrinho-resumo-qtd">0 itens</strong>
+      </div>
+      <div class="carrinho-total-linha">
+        <span>Total do Pedido:</span>
+        <strong id="carrinho-total-valor">R$ 0,00</strong>
+      </div>
+
+      <button type="button" class="btn-enviar-pedido-zap" id="btn-enviar-carrinho-zap" onclick="enviarPedidoWhatsApp()">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2C6.5 2 2 6.5 2 12c0 1.8.5 3.4 1.3 4.9L2 22l5.3-1.3c1.4.8 3 1.2 4.7 1.2 5.5 0 10-4.5 10-10S17.5 2 12 2zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3.1.8.8-3-.2-.3C4.1 15 3.7 13.5 3.7 12c0-4.6 3.7-8.3 8.3-8.3s8.3 3.7 8.3 8.3-3.7 8.2-8.3 8.2z"/>
+        </svg>
+        <span>Enviar Pedido para a Empresa</span>
+        <span class="zap-seta">→</span>
+      </button>
+
+      <button type="button" class="btn-continuar-comprando" onclick="fecharCarrinho()">
+        Continuar Escolhendo Produtos
+      </button>
+    </div>
+
+  </aside>
+</div>
+
+<!-- ========================================================
+     MODAL DE LOGIN DO ADMINISTRADOR
+     ======================================================== -->
+<div id="modal-login" class="modal-overlay">
+  <div class="modal-janela pequena">
+    <div class="modal-cabeca">
+      <h2>Acesso do Lojista</h2>
+      <button class="modal-fechar" onclick="fecharModalLogin()" title="Fechar">✕</button>
+    </div>
+    <form id="form-login">
+      <div class="modal-corpo">
+        <p style="font-size:13px;color:var(--tinta-fraca);margin:0 0 12px;line-height:1.4">
+          Digite sua senha de administrador para acessar o gerenciador de produtos.
+        </p>
+        <div class="campo">
+          <label for="login-senha">Senha de Acesso</label>
+          <input type="password" id="login-senha" required placeholder="Digite sua senha" autocomplete="current-password">
+        </div>
+        <div id="login-erro" style="display:none;color:#d32f2f;font-size:12.5px;font-weight:700;margin-top:6px">
+          Senha incorreta
+        </div>
+      </div>
+      <div class="modal-rodape">
+        <button type="button" class="btn-admin secundario" onclick="fecharModalLogin()">Cancelar</button>
+        <button type="submit" class="btn-admin">Entrar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ========================================================
+     MODAL DE ALTERAÇÃO DE SENHA
+     ======================================================== -->
+<div id="modal-senha" class="modal-overlay">
+  <div class="modal-janela pequena">
+    <div class="modal-cabeca">
+      <h2>Alterar Senha</h2>
+      <button class="modal-fechar" onclick="fecharModalSenha()" title="Fechar">✕</button>
+    </div>
+    <form id="form-senha">
+      <div class="modal-corpo">
+        <div class="campo">
+          <label for="nova-senha">Nova Senha (mín. 4 caracteres)</label>
+          <input type="password" id="nova-senha" required placeholder="Sua nova senha">
+        </div>
+        <div class="campo">
+          <label for="nova-senha-conf">Confirmar Nova Senha</label>
+          <input type="password" id="nova-senha-conf" required placeholder="Repita a nova senha">
+        </div>
+      </div>
+      <div class="modal-rodape">
+        <button type="button" class="btn-admin secundario" onclick="fecharModalSenha()">Cancelar</button>
+        <button type="submit" class="btn-admin">Salvar Nova Senha</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ========================================================
+     MODAL DE ADICIONAR / EDITAR PRODUTO
+     ======================================================== -->
+<div id="modal-produto" class="modal-overlay" onclick="if(event.target===this)fecharModalProduto()">
+  <div class="modal-janela">
+    <div class="modal-cabeca">
+      <h2 id="modal-produto-titulo">Produto</h2>
+      <button type="button" class="modal-fechar" onclick="fecharModalProduto()" title="Fechar">✕</button>
+    </div>
+    <form id="form-produto">
+      <div class="modal-corpo">
+        <div class="campo" style="background:var(--rosa);padding:12px 14px;border-radius:14px;border:1.5px solid var(--borda)">
+          <label for="prod-cat" style="color:var(--magenta);font-size:14px">📂 Em qual Categoria este produto vai ficar? *</label>
+          <select id="prod-cat" style="background:#fff;font-weight:700"></select>
+        </div>
+
+        <div id="campo-nova-cat" class="campo" style="display:none;background:var(--creme);padding:12px;border-radius:12px;border:1.5px dashed var(--magenta)">
+          <label for="prod-nova-cat" style="color:var(--magenta);font-weight:700">✨ Nome da Nova Categoria *</label>
+          <input type="text" id="prod-nova-cat" placeholder="Ex: Picolés Especiais, Potes Gourmet, Sobremesas...">
+          <label for="prod-nova-cat-grupo" style="margin-top:10px;font-weight:700;color:var(--magenta);display:block">📂 Esta nova categoria pertence a qual Aba / Tipo? *</label>
+          <select id="prod-nova-cat-grupo" style="background:#fff;font-weight:600">
+            <option value="picoles">🍦 Picolés & Paletas (individuais)</option>
+            <option value="potes">🍨 Potes (pra levar)</option>
+            <option value="loja">🥤 Copos, Açaís & Milkshakes (na hora)</option>
+          </select>
+        </div>
+
+        <div class="campo">
+          <label for="prod-nome">🍦 Nome do Produto *</label>
+          <input type="text" id="prod-nome" required placeholder="Ex: Milkshake 300ml Ninho com Nutella">
+        </div>
+
+        <div class="campo">
+          <label for="prod-desc">📝 Descrição / Sabor / Ingredientes</label>
+          <textarea id="prod-desc" placeholder="Descreva o sabor, acompanhamentos ou tamanho..."></textarea>
+        </div>
+
+        <div class="linha-dupla">
+          <div class="campo">
+            <label for="prod-preco">💰 Preço Atual (R$) *</label>
+            <input type="text" id="prod-preco" required placeholder="Ex: 12,00">
+          </div>
+          <div class="campo">
+            <label for="prod-preco-antigo">🏷️ Preço Antigo s/ Desconto (Opcional)</label>
+            <input type="text" id="prod-preco-antigo" placeholder="Deixe vazio se não tiver promoção">
+          </div>
+        </div>
+
+        <div class="campo">
+          <label for="prod-grupo">Abas de Filtro Rápido</label>
+          <select id="prod-grupo">
+            <option value="loja">Copos, Açaís & Milkshakes (na hora)</option>
+            <option value="potes">Potes (pra levar)</option>
+            <option value="picoles">Picolés & Paletas (individuais)</option>
+          </select>
+        </div>
+
+        <div class="campo">
+          <label>📸 Foto do Produto</label>
+          <div class="foto-seletor">
+            <div id="prod-foto-preview" class="foto-preview">
+              <span>Sem foto</span>
+            </div>
+            <div style="flex:1">
+              <label class="btn-admin secundario" style="display:inline-block;cursor:pointer;margin-bottom:8px">
+                📁 Escolher Foto do Computador / Celular
+                <input type="file" id="prod-foto-arquivo" accept="image/*" style="display:none">
+              </label>
+              <input type="text" id="prod-foto-url" placeholder="ou cole o link da foto (deixe vazio p/ manter a atual)">
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-rodape">
+        <button type="button" class="btn-admin secundario" onclick="fecharModalProduto()">Cancelar</button>
+        <button type="submit" class="btn-admin">💾 Salvar Produto</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ========================================================
+     MODAL DE CARD DE DESTAQUE ESPECIAL ("We Love Cheesecake")
+     ======================================================== -->
+<div id="modal-destaque" class="modal-overlay">
+  <div class="modal-janela">
+    <div class="modal-cabeca">
+      <h2>Editar Card de Destaque</h2>
+      <button class="modal-fechar" onclick="fecharModalDestaque()" title="Fechar">✕</button>
+    </div>
+    <form id="form-destaque">
+      <div class="modal-corpo">
+        <div class="campo" style="display:flex;align-items:center;gap:8px">
+          <input type="checkbox" id="dest-ativo" style="width:18px;height:18px;accent-color:var(--magenta)">
+          <label for="dest-ativo" style="margin:0;cursor:pointer">Exibir este Card de Destaque no topo do cardápio</label>
+        </div>
+        <div class="campo">
+          <label for="dest-tag">Etiqueta Superior (Tag)</label>
+          <input type="text" id="dest-tag" placeholder="Ex: ✨ Especial de Fim de Ano">
+        </div>
+        <div class="campo">
+          <label for="dest-titulo">Título Principal *</label>
+          <input type="text" id="dest-titulo" required placeholder="Ex: Boas Festas & Muito Sorvete!">
+        </div>
+        <div class="campo">
+          <label for="dest-sub">Subtítulo</label>
+          <input type="text" id="dest-sub" placeholder="Ex: Encomende seus potes para a ceia com a família">
+        </div>
+        <div class="campo">
+          <label for="dest-texto">Mensagem / Texto</label>
+          <textarea id="dest-texto" placeholder="Escreva sua mensagem especial, promoção ou história..."></textarea>
+        </div>
+        <div class="campo">
+          <label for="dest-btn">Texto do Botão</label>
+          <input type="text" id="dest-btn" placeholder="Ex: Fazer Encomenda no WhatsApp">
+        </div>
+        <div class="campo">
+          <label>Foto em Destaque</label>
+          <div class="foto-seletor">
+            <div id="dest-foto-preview" class="foto-preview"><span>Sem foto</span></div>
+            <div style="flex:1">
+              <label class="btn-admin secundario" style="display:inline-block;cursor:pointer;margin-bottom:8px">
+                📁 Escolher Foto
+                <input type="file" id="dest-foto-arquivo" accept="image/*" style="display:none">
+              </label>
+              <input type="text" id="dest-foto-url" placeholder="ou cole o link da foto (URL)">
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-rodape">
+        <button type="button" class="btn-admin secundario" onclick="fecharModalDestaque()">Cancelar</button>
+        <button type="submit" class="btn-admin">Salvar Destaque</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ========================================================
+     MODAL DE SEÇÃO DAS 6 CASQUINHAS SEM FUNDO
+     ======================================================== -->
+<div id="modal-casquinhas" class="modal-overlay">
+  <div class="modal-janela">
+    <div class="modal-cabeca">
+      <h2>Editar Seção das 6 Casquinhas</h2>
+      <button class="modal-fechar" onclick="fecharModalCasquinhas()" title="Fechar">✕</button>
+    </div>
+    <form id="form-casquinhas">
+      <div class="modal-corpo">
+        <div class="campo" style="display:flex;align-items:center;gap:8px">
+          <input type="checkbox" id="casq-ativo" style="width:18px;height:18px;accent-color:var(--magenta)">
+          <label for="casq-ativo" style="margin:0;cursor:pointer">Exibir seção das 6 casquinhas no site</label>
+        </div>
+        <div class="campo">
+          <label for="casq-titulo">Título em Destaque (Esquerda) *</label>
+          <input type="text" id="casq-titulo" required placeholder="Ex: PEÇA NOSSOS COMBOS PARA CURTIR COM OS AMIGOS">
+        </div>
+        <div class="campo">
+          <label for="casq-texto">Texto Descritivo (Direita)</label>
+          <textarea id="casq-texto" placeholder="Descubra a jornada dos nossos sorvetes artesanais..."></textarea>
+        </div>
+        <div class="campo">
+          <label for="casq-btn">Texto do Botão Central</label>
+          <input type="text" id="casq-btn" placeholder="Ex: PEÇA AGORA">
+        </div>
+        <div class="campo">
+          <label for="casq-zap">Mensagem que vai para o WhatsApp ao clicar</label>
+          <input type="text" id="casq-zap" placeholder="Ex: Olá! Quero fazer um pedido pelo cardápio!">
+        </div>
+        <div class="campo">
+          <label>Imagem Central (PNG sem fundo)</label>
+          <div class="foto-seletor">
+            <div id="casq-foto-preview" class="foto-preview"><span>Sem foto</span></div>
+            <div style="flex:1">
+              <label class="btn-admin secundario" style="display:inline-block;cursor:pointer;margin-bottom:8px">
+                📁 Escolher Imagem
+                <input type="file" id="casq-foto-arquivo" accept="image/*" style="display:none">
+              </label>
+              <input type="text" id="casq-foto-url" placeholder="assets/marca/seis-casquinhas.png">
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-rodape">
+        <button type="button" class="btn-admin secundario" onclick="fecharModalCasquinhas()">Cancelar</button>
+        <button type="submit" class="btn-admin">Salvar Alterações</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ========================================================
+     MODAL DE GERENCIAR CATEGORIAS (OCULTAR / EDITAR / EXCLUIR)
+     ======================================================== -->
+<div id="modal-categorias" class="modal-overlay">
+  <div class="modal-janela" style="max-width:600px">
+    <div class="modal-cabeca">
+      <h2>📂 Gerenciar Categorias</h2>
+      <button class="modal-fechar" onclick="fecharModalCategorias()" title="Fechar">✕</button>
+    </div>
+    <div class="modal-corpo">
+      <p style="margin:0 0 12px;font-size:13px;color:var(--tinta-fraca);line-height:1.45">
+        Aqui você pode <b>ocultar</b> categorias que não tem no momento (elas continuam salvas para você, mas ficam <b>100% invisíveis para os clientes</b>), definir em qual aba aparecem (Picolés, Potes ou Copos), renomear ou excluir definitivamente.
+      </p>
+      <div class="nova-cat-rapida-box" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;background:var(--creme);padding:12px;border-radius:14px;border:1.5px solid var(--borda)">
+        <div style="flex:1;min-width:200px">
+          <label for="nova-cat-rapida" style="display:block;font-size:12px;font-weight:700;color:var(--magenta);margin-bottom:4px">➕ Nome da Nova Categoria:</label>
+          <input type="text" id="nova-cat-rapida" placeholder="Ex: Picolés Especiais, Potes Gourmet..." style="width:100%;height:38px;padding:0 12px;border:1.5px solid var(--borda);border-radius:8px;font-family:inherit;font-size:13px;background:#fff">
+        </div>
+        <div style="min-width:180px">
+          <label for="nova-cat-grupo" style="display:block;font-size:12px;font-weight:700;color:var(--magenta);margin-bottom:4px">📂 Em qual Aba aparece?</label>
+          <select id="nova-cat-grupo" style="width:100%;height:38px;padding:0 10px;border:1.5px solid var(--borda);border-radius:8px;font-family:inherit;font-size:12.5px;background:#fff;font-weight:600">
+            <option value="picoles">🍦 Picolés & Paletas</option>
+            <option value="potes">🍨 Potes (pra levar)</option>
+            <option value="loja">🥤 Copos, Açaís & Shakes</option>
+          </select>
+        </div>
+        <div style="display:flex;align-items:flex-end">
+          <button type="button" class="btn-admin" onclick="adicionarCategoriaRapida()" style="height:38px;white-space:nowrap">➕ Criar</button>
+        </div>
+      </div>
+      <div id="lista-gerenciar-cats" class="lista-gerenciar-cats"></div>
+    </div>
+    <div class="modal-rodape">
+      <button type="button" class="btn-admin" onclick="fecharModalCategorias()">Concluído</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================================
+     MODAL DE ADICIONAR / EDITAR CARD DO BLOG / MURAL
+     ======================================================== -->
+<div id="modal-blog" class="modal-overlay">
+  <div class="modal-janela">
+    <div class="modal-cabeca">
+      <h2 id="modal-blog-titulo">Card do Mural / Blog</h2>
+      <button class="modal-fechar" onclick="fecharModalBlog()" title="Fechar">✕</button>
+    </div>
+    <form id="form-blog">
+      <div class="modal-corpo">
+        <div class="campo">
+          <label for="blog-data">Data / Categoria do Card</label>
+          <input type="text" id="blog-data" placeholder="Ex: Especial de Dezembro · Novidade">
+        </div>
+        <div class="campo">
+          <label for="blog-titulo-input">Título do Card *</label>
+          <input type="text" id="blog-titulo-input" required placeholder="Ex: Horário Especial de Final de Ano">
+        </div>
+        <div class="campo">
+          <label for="blog-texto-input">Conteúdo / Detalhes *</label>
+          <textarea id="blog-texto-input" required placeholder="Escreva os detalhes da novidade, dica ou comunicado..."></textarea>
+        </div>
+        <div class="campo">
+          <label>Foto do Card</label>
+          <div class="foto-seletor">
+            <div id="blog-foto-preview" class="foto-preview"><span>Sem foto</span></div>
+            <div style="flex:1">
+              <label class="btn-admin secundario" style="display:inline-block;cursor:pointer;margin-bottom:8px">
+                📁 Escolher Foto
+                <input type="file" id="blog-foto-arquivo" accept="image/*" style="display:none">
+              </label>
+              <input type="text" id="blog-foto-url" placeholder="ou cole o link da foto (URL)">
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-rodape">
+        <button type="button" class="btn-admin secundario" onclick="fecharModalBlog()">Cancelar</button>
+        <button type="submit" class="btn-admin">Salvar Card</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ========================================================
+     MODAL DE LEITURA DE POST DO BLOG (PARA CLIENTES)
+     ======================================================== -->
+<div id="modal-leitura-blog" class="modal-overlay" onclick="if(event.target===this)fecharLeituraBlog()">
+  <div class="modal-janela">
+    <div class="modal-cabeca">
+      <h2 id="leitura-blog-meta" style="font-size:14px;text-transform:uppercase;letter-spacing:.05em">Novidade</h2>
+      <button class="modal-fechar" onclick="fecharLeituraBlog()" title="Fechar">✕</button>
+    </div>
+    <div class="modal-corpo">
+      <div style="border-radius:18px;overflow:hidden;margin-bottom:14px;max-height:260px;background:var(--rosa)">
+        <img id="leitura-blog-img" src="" alt="" style="width:100%;height:100%;object-fit:cover;display:block">
+      </div>
+      <h3 id="leitura-blog-titulo" style="font-size:22px;color:var(--tinta);margin-bottom:10px;line-height:1.15"></h3>
+      <p id="leitura-blog-texto" style="font-size:14.5px;color:var(--tinta-fraca);line-height:1.6;white-space:pre-line;margin:0 0 18px"></p>
+      <a id="leitura-blog-zap" class="pedir" href="#" target="_blank" rel="noopener" style="min-height:46px;font-size:14px">
+        Pedir ou Tirar Dúvida no WhatsApp
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================================
+     MODAL DE FOTO DA GALERIA DO TOPO
+     ======================================================== -->
+<div id="modal-galeria" class="modal-overlay">
+  <div class="modal-janela pequena">
+    <div class="modal-cabeca">
+      <h2>Trocar Foto do Topo</h2>
+      <button class="modal-fechar" onclick="fecharModalGaleria()" title="Fechar">✕</button>
+    </div>
+    <form id="form-galeria">
+      <div class="modal-corpo">
+        <div class="campo">
+          <label>Escolher Nova Foto</label>
+          <div class="foto-seletor">
+            <div id="gal-foto-preview" class="foto-preview"><span>Sem foto</span></div>
+            <div style="flex:1">
+              <label class="btn-admin secundario" style="display:inline-block;cursor:pointer;margin-bottom:8px">
+                📁 Enviar do Computador
+                <input type="file" id="gal-foto-arquivo" accept="image/*" style="display:none">
+              </label>
+              <input type="text" id="gal-foto-url" placeholder="ou cole a URL da imagem">
+            </div>
+          </div>
+        </div>
+        <div class="campo">
+          <label for="gal-legenda">Descrição curta</label>
+          <input type="text" id="gal-legenda" placeholder="Ex: Crianças tomando sorvete">
+        </div>
+      </div>
+      <div class="modal-rodape">
+        <button type="button" class="btn-admin secundario" onclick="fecharModalGaleria()">Cancelar</button>
+        <button type="submit" class="btn-admin">Salvar Foto</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ========================================================
+     MODAL DE CONFIGURAÇÕES DA LOJA
+     ======================================================== -->
+<div id="modal-config" class="modal-overlay">
+  <div class="modal-janela">
+    <div class="modal-cabeca">
+      <h2>Configurações da Loja</h2>
+      <button class="modal-fechar" onclick="fecharModalConfig()" title="Fechar">✕</button>
+    </div>
+    <form id="form-config">
+      <div class="modal-corpo">
+        <div class="campo">
+          <label for="cfg-nome">Nome da Loja</label>
+          <input type="text" id="cfg-nome" required placeholder="Sorveteria Lolla">
+        </div>
+        <div class="campo">
+          <label for="cfg-zap">Número do WhatsApp para Pedidos (com DDD)</label>
+          <input type="text" id="cfg-zap" required placeholder="Ex: 5544999432158">
+          <small style="color:var(--tinta-fraca);display:block;margin-top:4px">
+            Formato: 55 + DDD + Número sem traços (ex: 5544999432158). Os botões "Pedir" enviarão para este contato.
+          </small>
+        </div>
+      </div>
+      <div class="modal-rodape">
+        <button type="button" class="btn-admin secundario" onclick="fecharModalConfig()">Cancelar</button>
+        <button type="submit" class="btn-admin">Salvar Configurações</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  window.__CARDAPIO_DATA__ = {
+  "cats": [
+    "Açaí Monte o Seu!!!",
+    "Açaí no Pote!",
+    ">>> Baratíssimo <<<",
+    "Combos Promocionais de Açaí e Milkshake",
+    "Paleta Mexicana",
+    "Pistache",
+    "Picolés Premium Spettacolo",
+    "Picolés Kids",
+    "Zero Açucar",
+    "Sorbet - Zero Lactose",
+    "Sundae",
+    "Picolés Especiais",
+    "Lollinho",
+    "Bebidas",
+    "Milkshake's - Escolha o Tamanho!",
+    "Gelato Italiano 2l",
+    "Pote de Sorvete Clássico 2l",
+    "Potes Nevados 1,5l",
+    "Sorvete Moreninha"
+  ],
+  "itens": [
+    {
+      "n": "Açaí Monte o Seu - Copo 300ml c/ Até 3 acompanhamentos Grátis!!",
+      "d": "Escolha seus favoritos, personalize do seu jeito e aproveite cada colherada!",
+      "c": "Açaí Monte o Seu!!!",
+      "g": "loja",
+      "p": 23.9,
+      "po": 27.9,
+      "w4": "202502271647_N364_i_v1_400.webp",
+      "w6": "202502271647_N364_i_v1_600.webp",
+      "w8": "202502271647_N364_i_v1_800.webp",
+      "j": "202502271647_N364_i_v1_400.jpg"
+    },
+    {
+      "n": "Açaí Monte o Seu - Copo 500ml c/ Até 3 acompanhamentos Grátis!!",
+      "d": "Escolha seus favoritos, personalize do seu jeito e aproveite cada colherada!",
+      "c": "Açaí Monte o Seu!!!",
+      "g": "loja",
+      "p": 32.9,
+      "po": 38.9,
+      "w4": "202502271647_N364_i_v1_400.webp",
+      "w6": "202502271647_N364_i_v1_600.webp",
+      "w8": "202502271647_N364_i_v1_800.webp",
+      "j": "202502271647_N364_i_v1_400.jpg"
+    },
+    {
+      "n": "Açaí Monte o Seu - Copo 700ml c/ Até 5 acompanhamentos Grátis!!",
+      "d": "Escolha seus favoritos, personalize do seu jeito e aproveite cada colherada!",
+      "c": "Açaí Monte o Seu!!!",
+      "g": "loja",
+      "p": 39.9,
+      "po": 45.9,
+      "w4": "202502271647_N364_i_v1_400.webp",
+      "w6": "202502271647_N364_i_v1_600.webp",
+      "w8": "202502271647_N364_i_v1_800.webp",
+      "j": "202502271647_N364_i_v1_400.jpg"
+    },
+    {
+      "n": "Pote Açai 1,5l",
+      "d": "Açaí tradicional em pote de 1,5 litro, ideal para servir várias pessoas. Conserve no congelador e monte sua tigela com os acompanhamentos favoritos.",
+      "c": "Açaí no Pote!",
+      "g": "potes",
+      "p": 49.9,
+      "po": 0,
+      "w4": "202502262118_2143_i_v1_400.webp",
+      "w6": "202502262118_2143_i_v1_600.webp",
+      "w8": "202502262118_2143_i_v1_800.webp",
+      "j": "202502262118_2143_i_v1_400.jpg"
+    },
+    {
+      "n": "Açai 300ml: Leite em Pó + Leite Condensado",
+      "d": "Esse Clássico não tem erro...\nDelicioso Açaí Premium com Leite condensado e Leite em Pó, trazendo um sabor perfeito.\nServe até 1 pessoa (aprox. 300g)",
+      "c": ">>> Baratíssimo <<<",
+      "g": "loja",
+      "p": 19.9,
+      "po": 20.9,
+      "w4": "202506111759_35AG_i_v1_400.webp",
+      "w6": "202506111759_35AG_i_v1_600.webp",
+      "w8": "202506111759_35AG_i_v1_800.webp",
+      "j": "202506111759_35AG_i_v1_400.jpg"
+    },
+    {
+      "n": "2 Copos de Açaí de 300ml c/ até 3 Acompanhamentos Grátis!!!",
+      "d": "2 Copos de Açaí de 300ml c/ até 3 Acompanhamentos Grátis. Acompanhamentos disponíveis neste combo para escolha são: Banana, Kiwi, Leite em Pó, Leite Condensado e Paçoca. \nObs: Os dois copos devem ser iguais.",
+      "c": "Combos Promocionais de Açaí e Milkshake",
+      "g": "loja",
+      "p": 38.9,
+      "po": 49.99,
+      "w4": "202506111828_D34G_i_v1_400.webp",
+      "w6": "202506111828_D34G_i_v1_600.webp",
+      "w8": "202506111828_D34G_i_v1_800.webp",
+      "j": "202506111828_D34G_i_v1_400.jpg"
+    },
+    {
+      "n": "2 Milkshake 300ml",
+      "d": "2 Milkshake de 300ml neste combo promocional aonde poderá escolher os deliciosos sabores de Ovomaltine e Morango. Não perca essa oportunidade única.",
+      "c": "Combos Promocionais de Açaí e Milkshake",
+      "g": "loja",
+      "p": 37.9,
+      "po": 49.99,
+      "w4": "202506111859_J542_i_v1_400.webp",
+      "w6": "202506111859_J542_i_v1_600.webp",
+      "w8": "202506111859_J542_i_v1_800.webp",
+      "j": "202506111859_J542_i_v1_400.jpg"
+    },
+    {
+      "n": "1 Copo Açaí 300ml c/ até 3 Complementos Grátis + 1 Milkshake 300ml",
+      "d": "1x Copo Açaí de 300ml c/ até 3 complementos Grátis (Banana, Kiwi, Paçoca, Leite Condensado e Leite em Pó para escolher dentre os 3 acompanhamentos grátis) + 1x Milkshake 300ml de Morango ou Ovomaltine.",
+      "c": "Combos Promocionais de Açaí e Milkshake",
+      "g": "loja",
+      "p": 38.5,
+      "po": 49.99,
+      "w4": "202506111923_5C06_i_v1_400.webp",
+      "w6": "202506111923_5C06_i_v1_600.webp",
+      "w8": "202506111923_5C06_i_v1_800.webp",
+      "j": "202506111923_5C06_i_v1_400.jpg"
+    },
+    {
+      "n": "Paleta Mexicana - Açaí",
+      "d": "Porção individual, perfeita para se refrescar a qualquer hora.",
+      "c": "Paleta Mexicana",
+      "g": "picoles",
+      "p": 13,
+      "po": 0,
+      "w4": "202502251646_U372_i_v1_400.webp",
+      "w6": "202502251646_U372_i_v1_600.webp",
+      "w8": "202502251646_U372_i_v1_800.webp",
+      "j": "202502251646_U372_i_v1_400.jpg"
+    },
+    {
+      "n": "Milk Shake (300ml) - Pistache",
+      "d": "Milk Shake de Pistache (300ml) - Cremoso, gelado e com o sabor autêntico do pistache. Caso queira, você pode selecionar um tamanho maior na próxima etapa!",
+      "c": "Pistache",
+      "g": "loja",
+      "p": 25.9,
+      "po": 0,
+      "w4": "202506101845_C6FC_i_v1_400.webp",
+      "w6": "202506101845_C6FC_i_v1_600.webp",
+      "w8": "202506101845_C6FC_i_v1_800.webp",
+      "j": "202506101845_C6FC_i_v1_400.jpg"
+    },
+    {
+      "n": "Picolé Supremo (75g) - Pistache",
+      "d": "Picolé Supremo Sabor Pistache com Cobertura de Chocolate Branco com Pistache",
+      "c": "Pistache",
+      "g": "picoles",
+      "p": 17.9,
+      "po": 0,
+      "w4": "202506101835_N0PF_i_v1_400.webp",
+      "w6": "202506101835_N0PF_i_v1_600.webp",
+      "w8": "202506101835_N0PF_i_v1_800.webp",
+      "j": "202506101835_N0PF_i_v1_400.jpg"
+    },
+    {
+      "n": "Cone Pistache (85g)",
+      "d": "Cone no Sabor Pistache com Cobertura de Chocolate Branco com Pistache",
+      "c": "Pistache",
+      "g": "picoles",
+      "p": 16.9,
+      "po": 0,
+      "w4": "202506101838_0DSO_i_v1_400.webp",
+      "w6": "202506101838_0DSO_i_v1_600.webp",
+      "w8": "202506101838_0DSO_i_v1_800.webp",
+      "j": "202506101838_0DSO_i_v1_400.jpg"
+    },
+    {
+      "n": "Picolé Spettacolo (70g) - Banana Bombom",
+      "d": "Picolé Spettacolo de Sabor Banana com Cobertura de Chocolate ao Leite",
+      "c": "Picolés Premium Spettacolo",
+      "g": "picoles",
+      "p": 6.9,
+      "po": 0,
+      "w4": "202502262155_W8C0_i_v1_400.webp",
+      "w6": "202502262155_W8C0_i_v1_600.webp",
+      "w8": "202502262155_W8C0_i_v1_800.webp",
+      "j": "202502262155_W8C0_i_v1_400.jpg"
+    },
+    {
+      "n": "Picolé Spettacolo (60g) - Flocos",
+      "d": "Picolé premium Spettacolo sabor flocos, porção de 60g. Cremoso e ideal para refrescar qualquer hora do dia.",
+      "c": "Picolés Premium Spettacolo",
+      "g": "picoles",
+      "p": 6.9,
+      "po": 0,
+      "w4": "202502262143_570C_i_v1_400.webp",
+      "w6": "202502262143_570C_i_v1_600.webp",
+      "w8": "202502262143_570C_i_v1_800.webp",
+      "j": "202502262143_570C_i_v1_400.jpg"
+    },
+    {
+      "n": "Picolé Spettacolo (60g) - Iogurte Grego com Frutas Vermelhas",
+      "d": "Picolé premium Spettacolo de iogurte grego com frutas vermelhas, porção de 60g. Equilíbrio entre o azedinho do iogurte e a doçura das frutas.",
+      "c": "Picolés Premium Spettacolo",
+      "g": "picoles",
+      "p": 8.5,
+      "po": 0,
+      "w4": "202502272141_5H15_i_v1_400.webp",
+      "w6": "202502272141_5H15_i_v1_600.webp",
+      "w8": "202502272141_5H15_i_v1_800.webp",
+      "j": "202502272141_5H15_i_v1_400.jpg"
+    },
+    {
+      "n": "Picolé Spettacolo (75) - Chocolate",
+      "d": "Picolé Premium Spettacolo com Sabor de Chocolate com Cobertura de Chocolate Meio Amargo e Castanha de Caju.",
+      "c": "Picolés Premium Spettacolo",
+      "g": "picoles",
+      "p": 8.5,
+      "po": 0,
+      "w4": "202502262145_UCWG_i_v1_400.webp",
+      "w6": "202502262145_UCWG_i_v1_600.webp",
+      "w8": "202502262145_UCWG_i_v1_800.webp",
+      "j": "202502262145_UCWG_i_v1_400.jpg"
+    },
+    {
+      "n": "Picolé Spettacolo (70g) - Chococo",
+      "d": "Sabor Coco com Cobertura de Chocolate ao Leite",
+      "c": "Picolés Premium Spettacolo",
+      "g": "picoles",
+      "p": 8.5,
+      "po": 0,
+      "w4": "202502272142_8235_i_v1_400.webp",
+      "w6": "202502272142_8235_i_v1_600.webp",
+      "w8": "202502272142_8235_i_v1_800.webp",
+      "j": "202502272142_8235_i_v1_400.jpg"
+    },
+    {
+      "n": "Picolé Aventureiros Luccas Neto  (45g)",
+      "d": "Picolé sabor blue ice com cobertura de chocolate branco e confeitos, unidade de 45g. Licenciado dos Aventureiros do Luccas Neto, ideal para o lanche das crianças.",
+      "c": "Picolés Kids",
+      "g": "picoles",
+      "p": 10.5,
+      "po": 0,
+      "w4": "202502272050_V85F_i_v1_400.webp",
+      "w6": "202502272050_V85F_i_v1_600.webp",
+      "w8": "202502272050_V85F_i_v1_800.webp",
+      "j": "202502272050_V85F_i_v1_400.jpg"
+    },
+    {
+      "n": "Picolé Aventureiros Gi (45g)",
+      "d": "Picolé sabor morango com cobertura de chocolate branco e confeitos, unidade de 45g. Item da linha Aventureiros, perfeito para a sobremesa das crianças.",
+      "c": "Picolés Kids",
+      "g": "picoles",
+      "p": 10.5,
+      "po": 0,
+      "w4": "202502272050_88GD_i_v1_400.webp",
+      "w6": "202502272050_88GD_i_v1_600.webp",
+      "w8": "202502272050_88GD_i_v1_800.webp",
+      "j": "202502272050_88GD_i_v1_400.jpg"
+    },
+    {
+      "n": "Picolé Unicórnio (55g)",
+      "d": "Picolé sabor algodão doce com cobertura de chocolate branco e confeitos coloridos, unidade de 55g. Opção divertida para festas e lanches.",
+      "c": "Picolés Kids",
+      "g": "picoles",
+      "p": 10.5,
+      "po": 0,
+      "w4": "202502262139_R1AD_i_v1_400.webp",
+      "w6": "202502262139_R1AD_i_v1_600.webp",
+      "w8": "202502262139_R1AD_i_v1_800.webp",
+      "j": "202502262139_R1AD_i_v1_400.jpg"
+    },
+    {
+      "n": "Picolé Miraculous Cat Noir (50g)",
+      "d": "Picolé sabor duplo chocolate, unidade de 50g, licenciado de Miraculous. Boa pedida para os fãs do Cat Noir e de chocolate.",
+      "c": "Picolés Kids",
+      "g": "picoles",
+      "p": 10.5,
+      "po": 0,
+      "w4": "202502272053_5N3K_i_v1_400.webp",
+      "w6": "202502272053_5N3K_i_v1_600.webp",
+      "w8": "202502272053_5N3K_i_v1_800.webp",
+      "j": "202502272053_5N3K_i_v1_400.jpg"
+    },
+    {
+      "n": "Picolé Miraculous Ladybug (50g)",
+      "d": "Picolé sabor morango com cobertura de chocolate, unidade de 50g, licenciado de Miraculous. Ideal para o lanche ou a sobremesa das crianças.",
+      "c": "Picolés Kids",
+      "g": "picoles",
+      "p": 10.5,
+      "po": 0,
+      "w4": "202502272053_C720_i_v1_400.webp",
+      "w6": "202502272053_C720_i_v1_600.webp",
+      "w8": "202502272053_C720_i_v1_800.webp",
+      "j": "202502272053_C720_i_v1_400.jpg"
+    },
+    {
+      "n": "Picolé Coraçãozinho (50g)",
+      "d": "Picolé sabor morango em formato de coraçãozinho, unidade de 50g. Docinho e refrescante, agrada crianças e adultos.",
+      "c": "Picolés Kids",
+      "g": "picoles",
+      "p": 6.5,
+      "po": 0,
+      "w4": "202502272053_1582_i_v1_400.webp",
+      "w6": "202502272053_1582_i_v1_600.webp",
+      "w8": "202502272053_1582_i_v1_800.webp",
+      "j": "202502272053_1582_i_v1_400.jpg"
+    },
+    {
+      "n": "Picolé Picapau Amarelo Pamonha (60g)",
+      "d": "Picolé sabor pamonha da linha Picapau Amarelo, unidade de 60g. Cremoso e docinho, um sabor tradicional brasileiro.",
+      "c": "Picolés Kids",
+      "g": "picoles",
+      "p": 6.5,
+      "po": 0,
+      "w4": "202502272114_8J34_i_v1_400.webp",
+      "w6": "202502272114_8J34_i_v1_600.webp",
+      "w8": "202502272114_8J34_i_v1_800.webp",
+      "j": "202502272114_8J34_i_v1_400.jpg"
+    },
+    {
+      "n": "Pote 0% Açucar 1l - Napolitano",
+      "d": "Sorvete zero açúcar sabor napolitano — morango, chocolate e baunilha — em pote de 1 litro. Rende várias porções para a sobremesa de todo dia.",
+      "c": "Zero Açucar",
+      "g": "potes",
+      "p": 39.9,
+      "po": 0,
+      "w4": "202502262129_216P_i_v1_400.webp",
+      "w6": "202502262129_216P_i_v1_600.webp",
+      "w8": "202502262129_216P_i_v1_800.webp",
+      "j": "202502262129_216P_i_v1_400.jpg"
+    },
+    {
+      "n": "Pote 0% Açucar 1l - Creme",
+      "d": "Sorvete zero açúcar sabor creme em pote de 1 litro. Rende várias porções e combina com frutas e acompanhamentos.",
+      "c": "Zero Açucar",
+      "g": "potes",
+      "p": 39.9,
+      "po": 0,
+      "w4": "202502262128_YN8E_i_v1_400.webp",
+      "w6": "202502262128_YN8E_i_v1_600.webp",
+      "w8": "202502262128_YN8E_i_v1_800.webp",
+      "j": "202502262128_YN8E_i_v1_400.jpg"
+    },
+    {
+      "n": "Picolé 0% Açucar (60g) - Chocolate",
+      "d": "Picolé zero açúcar sabor chocolate, unidade de 60g. Porção individual para matar a vontade de doce a qualquer hora.",
+      "c": "Zero Açucar",
+      "g": "picoles",
+      "p": 5.5,
+      "po": 0,
+      "w4": "202502272047_7YLM_i_v1_400.webp",
+      "w6": "202502272047_7YLM_i_v1_600.webp",
+      "w8": "202502272047_7YLM_i_v1_800.webp",
+      "j": "202502272047_7YLM_i_v1_400.jpg"
+    },
+    {
+      "n": "Picolé 0% Açucar (60g) - Milho Verde",
+      "d": "Picolé zero açúcar sabor milho verde, unidade de 60g. Porção individual com o sabor clássico das festas juninas.",
+      "c": "Zero Açucar",
+      "g": "picoles",
+      "p": 5.5,
+      "po": 0,
+      "w4": "202502272048_7LEV_i_v1_400.webp",
+      "w6": "202502272048_7LEV_i_v1_600.webp",
+      "w8": "202502272048_7LEV_i_v1_800.webp",
+      "j": "202502272048_7LEV_i_v1_400.jpg"
+    },
+    {
+      "n": "Picolé 0% Açucar (60g) - Coco",
+      "d": "Picolé zero açúcar sabor coco, unidade de 60g. Porção individual, leve e refrescante.",
+      "c": "Zero Açucar",
+      "g": "picoles",
+      "p": 5.5,
+      "po": 0,
+      "w4": "202502272048_3NL5_i_v1_400.webp",
+      "w6": "202502272048_3NL5_i_v1_600.webp",
+      "w8": "202502272048_3NL5_i_v1_800.webp",
+      "j": "202502272048_3NL5_i_v1_400.jpg"
+    },
+    {
+      "n": "Pote Sorbet 1,5l - Morango",
+      "d": "Sorbet de morango zero lactose em pote de 1,5 litro. Opção frutada e refrescante para servir de sobremesa à família toda.",
+      "c": "Sorbet - Zero Lactose",
+      "g": "potes",
+      "p": 29.9,
+      "po": 0,
+      "w4": "202502262132_3J63_i_v1_400.webp",
+      "w6": "202502262132_3J63_i_v1_600.webp",
+      "w8": "202502262132_3J63_i_v1_800.webp",
+      "j": "202502262132_3J63_i_v1_400.jpg"
+    },
+    {
+      "n": "Pote Sorbet 1,5l - Limão",
+      "d": "Sorbet de limão zero lactose em pote de 1,5 litro. Refrescante e cítrico, vai bem como sobremesa leve depois das refeições.",
+      "c": "Sorbet - Zero Lactose",
+      "g": "potes",
+      "p": 29.9,
+      "po": 0,
+      "w4": "202502262126_UAL1_i_v1_400.webp",
+      "w6": "202502262126_UAL1_i_v1_600.webp",
+      "w8": "202502262126_UAL1_i_v1_800.webp",
+      "j": "202502262126_UAL1_i_v1_400.jpg"
+    },
+    {
+      "n": "Pote Sorbet 1,5l - Maracujá",
+      "d": "Sorbet de maracujá zero lactose em pote de 1,5 litro. Sabor tropical e refrescante para servir gelado a qualquer hora.",
+      "c": "Sorbet - Zero Lactose",
+      "g": "potes",
+      "p": 29.9,
+      "po": 0,
+      "w4": "202502262130_C4XK_i_v1_400.webp",
+      "w6": "202502262130_C4XK_i_v1_600.webp",
+      "w8": "202502262130_C4XK_i_v1_800.webp",
+      "j": "202502262130_C4XK_i_v1_400.jpg"
+    },
+    {
+      "n": "Sundae 120ml - Chocolate",
+      "d": "Sundae Lolla sabor chocolate em copinho de 120ml. Porção individual, perfeita para uma sobremesa rápida.",
+      "c": "Sundae",
+      "g": "loja",
+      "p": 6.9,
+      "po": 0,
+      "w4": "202502241308_06DB_i_v1_400.webp",
+      "w6": "202502241308_06DB_i_v1_600.webp",
+      "w8": "202502241308_06DB_i_v1_800.webp",
+      "j": "202502241308_06DB_i_v1_400.jpg"
+    },
+    {
+      "n": "Sundae 120ml - Morango",
+      "d": "Sundae Lolla sabor morango em copinho de 120ml. Porção individual, perfeita para uma sobremesa rápida.",
+      "c": "Sundae",
+      "g": "loja",
+      "p": 6.9,
+      "po": 0,
+      "w4": "202502241309_76UQ_i_v1_400.webp",
+      "w6": "202502241309_76UQ_i_v1_600.webp",
+      "w8": "202502241309_76UQ_i_v1_800.webp",
+      "j": "202502241309_76UQ_i_v1_400.jpg"
+    },
+    {
+      "n": "Picolé Sagu com Leitinho (60g)",
+      "d": "Picolé sabor sagu com nata, unidade de 60g. Sabor afetivo e cremoso, ótimo para quem ama sobremesas tradicionais.",
+      "c": "Picolés Especiais",
+      "g": "picoles",
+      "p": 8.5,
+      "po": 0,
+      "w4": "202502272042_1U42_i_v1_400.webp",
+      "w6": "202502272042_1U42_i_v1_600.webp",
+      "w8": "202502272042_1U42_i_v1_800.webp",
+      "j": "202502272042_1U42_i_v1_400.jpg"
+    },
+    {
+      "n": "Picolé Lollito (70g)",
+      "d": "Picolé de baunilha com recheio de chocolate ao leite, cobertura de chocolate branco e amendoim, unidade de 70g. Contém amendoim.",
+      "c": "Picolés Especiais",
+      "g": "picoles",
+      "p": 8.5,
+      "po": 0,
+      "w4": "202502262138_GI02_i_v1_400.webp",
+      "w6": "202502262138_GI02_i_v1_600.webp",
+      "w8": "202502262138_GI02_i_v1_800.webp",
+      "j": "202502262138_GI02_i_v1_400.jpg"
+    },
+    {
+      "n": "Picolé Frutillo (60g)",
+      "d": "Picolé nos sabores morango e baunilha, unidade de 60g. Leve e cremoso, boa escolha para a sobremesa do dia a dia.",
+      "c": "Picolés Especiais",
+      "g": "picoles",
+      "p": 6.5,
+      "po": 0,
+      "w4": "202502272042_QUG3_i_v1_400.webp",
+      "w6": "202502272042_QUG3_i_v1_600.webp",
+      "w8": "202502272042_QUG3_i_v1_800.webp",
+      "j": "202502272042_QUG3_i_v1_400.jpg"
+    },
+    {
+      "n": "Picolé Romeu e Julieta (60g)",
+      "d": "Picolé sabor queijo com recheio de goiabada, unidade de 60g. Versão gelada da clássica sobremesa Romeu e Julieta.",
+      "c": "Picolés Especiais",
+      "g": "picoles",
+      "p": 6.5,
+      "po": 0,
+      "w4": "202502272037_27YY_i_v1_400.webp",
+      "w6": "202502272037_27YY_i_v1_600.webp",
+      "w8": "202502272037_27YY_i_v1_800.webp",
+      "j": "202502272037_27YY_i_v1_400.jpg"
+    },
+    {
+      "n": "Picolé Baunilha Trufada (70g)",
+      "d": "Picolé de baunilha com recheio de chocolate e cobertura de chocolate branco, unidade de 70g. Para quem gosta de picolés recheados e cremosos.",
+      "c": "Picolés Especiais",
+      "g": "picoles",
+      "p": 8.5,
+      "po": 0,
+      "w4": "202502262137_0L22_i_v1_400.webp",
+      "w6": "202502262137_0L22_i_v1_600.webp",
+      "w8": "202502262137_0L22_i_v1_800.webp",
+      "j": "202502262137_0L22_i_v1_400.jpg"
+    },
+    {
+      "n": "Picolé Choco Trufa (70g)",
+      "d": "Picolé de chocolate com recheio de trufa de chocolate e cobertura de chocolate ao leite, unidade de 70g. Indicado para os amantes de chocolate intenso.",
+      "c": "Picolés Especiais",
+      "g": "picoles",
+      "p": 8.5,
+      "po": 0,
+      "w4": "202502262138_83RK_i_v1_400.webp",
+      "w6": "202502262138_83RK_i_v1_600.webp",
+      "w8": "202502262138_83RK_i_v1_800.webp",
+      "j": "202502262138_83RK_i_v1_400.jpg"
+    },
+    {
+      "n": "Sorvete Lollinho 100ml - Chocolate",
+      "d": "Sorvete Lollinho sabor chocolate em potinho individual de 100ml. Porção prática, ideal para crianças ou uma sobremesa rápida.",
+      "c": "Lollinho",
+      "g": "picoles",
+      "p": 2.9,
+      "po": 0,
+      "w4": "202502241250_8SG8_i_v1_400.webp",
+      "w6": "202502241250_8SG8_i_v1_600.webp",
+      "w8": "202502241250_8SG8_i_v1_800.webp",
+      "j": "202502241250_8SG8_i_v1_400.jpg"
+    },
+    {
+      "n": "Sorvete Lollinho 100ml - Leitinho",
+      "d": "Sorvete Lollinho sabor leitinho em potinho individual de 100ml. Cremoso e suave, ótimo para o lanche ou a sobremesa das crianças.",
+      "c": "Lollinho",
+      "g": "picoles",
+      "p": 2.9,
+      "po": 0,
+      "w4": "202502241251_Q8CI_i_v1_400.webp",
+      "w6": "202502241251_Q8CI_i_v1_600.webp",
+      "w8": "202502241251_Q8CI_i_v1_800.webp",
+      "j": "202502241251_Q8CI_i_v1_400.jpg"
+    },
+    {
+      "n": "Sorvete Lollinho 100ml - Morango",
+      "d": "Sorvete Lollinho sabor morango em potinho individual de 100ml. Porção na medida certa para a criançada e para matar a vontade de doce.",
+      "c": "Lollinho",
+      "g": "picoles",
+      "p": 2.9,
+      "po": 0,
+      "w4": "202502241252_06PK_i_v1_400.webp",
+      "w6": "202502241252_06PK_i_v1_600.webp",
+      "w8": "202502241252_06PK_i_v1_800.webp",
+      "j": "202502241252_06PK_i_v1_400.jpg"
+    },
+    {
+      "n": "Água Mineral Crystal Sem Gás 500ml",
+      "d": "Água mineral Crystal sem gás em garrafa de 500ml. Ideal para acompanhar sorvetes e sobremesas geladas.",
+      "c": "Bebidas",
+      "g": "loja",
+      "p": 3.9,
+      "po": 0,
+      "w4": "202604221109_v959rnmgz0c_v1_400.webp",
+      "w6": "202604221109_v959rnmgz0c_v1_600.webp",
+      "w8": "202604221109_v959rnmgz0c_v1_800.webp",
+      "j": "202604221109_v959rnmgz0c_v1_400.jpg"
+    },
+    {
+      "n": "Refrigerante Guaraná Antarctica 350ml",
+      "d": "Refrigerante Guaraná Antarctica em lata de 350ml. Sirva bem gelado para acompanhar seu pedido.",
+      "c": "Bebidas",
+      "g": "loja",
+      "p": 7.9,
+      "po": 0,
+      "w4": "202412092029_ehwl8mici7_v1_400.webp",
+      "w6": "202412092029_ehwl8mici7_v1_600.webp",
+      "w8": "202412092029_ehwl8mici7_v1_800.webp",
+      "j": "202412092029_ehwl8mici7_v1_400.jpg"
+    },
+    {
+      "n": "Água Crystal com Gás 500ml",
+      "d": "Água mineral Crystal com gás em garrafa de 500ml. Refrescante para acompanhar sobremesas geladas.",
+      "c": "Bebidas",
+      "g": "loja",
+      "p": 4.5,
+      "po": 0,
+      "w4": "202210180055_qcd4li6mk2q_v1_400.webp",
+      "w6": "202210180055_qcd4li6mk2q_v1_600.webp",
+      "w8": "202210180055_qcd4li6mk2q_v1_800.webp",
+      "j": "202210180055_qcd4li6mk2q_v1_400.jpg"
+    },
+    {
+      "n": "Coca-Cola Original 350ml",
+      "d": "Coca-Cola Original em lata de 350ml. Sirva bem gelada para acompanhar seu pedido.",
+      "c": "Bebidas",
+      "g": "loja",
+      "p": 7.9,
+      "po": 0,
+      "w4": "202210190340_0zsv41vq6o7i_v1_400.webp",
+      "w6": "202210190340_0zsv41vq6o7i_v1_600.webp",
+      "w8": "202210190340_0zsv41vq6o7i_v1_800.webp",
+      "j": "202210190340_0zsv41vq6o7i_v1_400.jpg"
+    },
+    {
+      "n": "Coca Cola Zero Lata 350ml",
+      "d": "Coca-Cola Zero Açúcar em lata de 350ml. Sirva bem gelada para acompanhar sorvetes e sobremesas.",
+      "c": "Bebidas",
+      "g": "loja",
+      "p": 7.9,
+      "po": 0,
+      "w4": "202410091134_4f07pcy90a_v1_400.webp",
+      "w6": "202410091134_4f07pcy90a_v1_600.webp",
+      "w8": "202410091134_4f07pcy90a_v1_800.webp",
+      "j": "202410091134_4f07pcy90a_v1_400.jpg"
+    },
+    {
+      "n": "Milk Shake (300ml) - Escolha o Sabor!",
+      "d": "Selecione o sabor desejado entre as 34 opções disponíveis. Milk Shake (300ml) da Lolla, feito com carinho artesanal.",
+      "c": "Milkshake's - Escolha o Tamanho!",
+      "g": "loja",
+      "p": 22.9,
+      "po": 0,
+      "w4": "202508112223_70SU_i_v1_400.webp",
+      "w6": "202508112223_70SU_i_v1_600.webp",
+      "w8": "202508112223_70SU_i_v1_800.webp",
+      "j": "202508112223_70SU_i_v1_400.jpg"
+    },
+    {
+      "n": "Gelato Italiano 2l - Escolha o Sabor!",
+      "d": "Selecione o sabor desejado entre as 6 opções disponíveis. Gelato Italiano 2l da Lolla, feito com carinho artesanal.",
+      "c": "Gelato Italiano 2l",
+      "g": "potes",
+      "p": 42.9,
+      "po": 59.9,
+      "w4": "202502201727_8VQI_i_v1_400.webp",
+      "w6": "202502201727_8VQI_i_v1_600.webp",
+      "w8": "202502201727_8VQI_i_v1_800.webp",
+      "j": "202502201727_8VQI_i_v1_400.jpg"
+    },
+    {
+      "n": "Pote Clássico 2l - Escolha o Sabor!",
+      "d": "Selecione o sabor desejado entre as 11 opções disponíveis. Pote Clássico 2l da Lolla, feito com carinho artesanal.",
+      "c": "Pote de Sorvete Clássico 2l",
+      "g": "potes",
+      "p": 39.9,
+      "po": 49.9,
+      "w4": "202502262032_G4J3_i_v1_400.webp",
+      "w6": "202502262032_G4J3_i_v1_600.webp",
+      "w8": "202502262032_G4J3_i_v1_800.webp",
+      "j": "202502262032_G4J3_i_v1_400.jpg"
+    },
+    {
+      "n": "Pote Nevado 1,5l - Escolha o Sabor!",
+      "d": "Selecione o sabor desejado entre as 16 opções disponíveis. Pote Nevado 1,5l da Lolla, feito com carinho artesanal.",
+      "c": "Potes Nevados 1,5l",
+      "g": "potes",
+      "p": 33.9,
+      "po": 39.9,
+      "w4": "202502262105_642M_i_v1_400.webp",
+      "w6": "202502262105_642M_i_v1_600.webp",
+      "w8": "202502262105_642M_i_v1_800.webp",
+      "j": "202502262105_642M_i_v1_400.jpg"
+    },
+    {
+      "n": "Paleta Mexicana - Escolha o Sabor!",
+      "d": "Selecione o sabor desejado entre as 7 opções disponíveis. Paleta Mexicana da Lolla, feito com carinho artesanal.",
+      "c": "Paleta Mexicana",
+      "g": "picoles",
+      "p": 13,
+      "po": 0,
+      "w4": "202502251621_04NT_i_v1_400.webp",
+      "w6": "202502251621_04NT_i_v1_600.webp",
+      "w8": "202502251621_04NT_i_v1_800.webp",
+      "j": "202502251621_04NT_i_v1_400.jpg"
+    },
+    {
+      "n": "Picolé Spettacolo (75g) - Escolha o Sabor!",
+      "d": "Selecione o sabor desejado entre as 6 opções disponíveis. Picolé Spettacolo (75g) da Lolla, feito com carinho artesanal.",
+      "c": "Picolés Premium Spettacolo",
+      "g": "picoles",
+      "p": 8.5,
+      "po": 0,
+      "w4": "202502262142_Q24W_i_v1_400.webp",
+      "w6": "202502262142_Q24W_i_v1_600.webp",
+      "w8": "202502262142_Q24W_i_v1_800.webp",
+      "j": "202502262142_Q24W_i_v1_400.jpg"
+    },
+    {
+      "n": "Sorvete Moreninha (75g) - Escolha o Sabor!",
+      "d": "Selecione o sabor desejado entre as 4 opções disponíveis. Sorvete Moreninha (75g) da Lolla, feito com carinho artesanal.",
+      "c": "Sorvete Moreninha",
+      "g": "picoles",
+      "p": 6.9,
+      "po": 0,
+      "w4": "202502251704_77DK_i_v1_400.webp",
+      "w6": "202502251704_77DK_i_v1_600.webp",
+      "w8": "202502251704_77DK_i_v1_800.webp",
+      "j": "202502251704_77DK_i_v1_400.jpg"
+    }
+  ]
+};
+</script>
+<script src="/js/app.js"></script>
+</body>
+</html>

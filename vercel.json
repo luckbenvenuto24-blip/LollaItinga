@@ -1,0 +1,9 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/api/cardapio", "destination": "/data/cardapio.json" },
+    { "source": "/admin", "destination": "/index.html" },
+    { "source": "/gerenciar", "destination": "/index.html" }
+  ]
+}

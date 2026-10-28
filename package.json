@@ -1,0 +1,20 @@
+{
+  "name": "sorveteria-lolla-cardapio",
+  "version": "1.0.0",
+  "description": "Cardápio Digital da Sorveteria Lolla",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "build": "node -e \"console.log('Build OK')\"",
+    "download:brand": "node download_brand.js",
+    "download:images": "node download_all_images.js"
+  },
+  "keywords": [
+    "cardapio",
+    "sorveteria",
+    "delivery",
+    "whatsapp"
+  ],
+  "author": "",
+  "license": "MIT"
+}
