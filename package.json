@@ -2,9 +2,10 @@
   "name": "sorveteria-lolla-cardapio",
   "version": "1.0.0",
   "description": "Cardápio Digital da Sorveteria Lolla",
+  "main": "server.js",
   "scripts": {
-    "start": "node local-server.js",
-    "dev": "node local-server.js",
+    "start": "node server.js",
+    "dev": "node server.js",
     "download:brand": "node download_brand.js",
     "download:images": "node download_all_images.js"
   },

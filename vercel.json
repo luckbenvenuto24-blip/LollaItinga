@@ -1,9 +1,24 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "cleanUrls": true,
-  "rewrites": [
-    { "source": "/api/cardapio", "destination": "/data/cardapio.json" },
-    { "source": "/admin", "destination": "/index.html" },
-    { "source": "/gerenciar", "destination": "/index.html" }
+  "version": 2,
+  "builds": [
+    {
+      "src": "server.js",
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": [
+          "assets/**",
+          "css/**",
+          "js/**",
+          "data/**",
+          "index.html"
+        ]
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "server.js"
+    }
   ]
 }

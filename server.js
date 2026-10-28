@@ -4,19 +4,26 @@ const path = require('path');
 const crypto = require('crypto');
 
 const PORT = process.env.PORT || 3000;
-const AUTH_FILE = path.join(__dirname, 'data/auth.json');
-const CARDAPIO_FILE = path.join(__dirname, 'data/cardapio.json');
+const ROOT_DIR = process.cwd();
+const AUTH_FILE = path.join(ROOT_DIR, 'data/auth.json');
+const CARDAPIO_FILE = path.join(ROOT_DIR, 'data/cardapio.json');
 
 // Garante que data/auth.json existe
 function getAuthData() {
   if (!fs.existsSync(AUTH_FILE)) {
     const defaultHash = crypto.createHash('sha256').update('lolla123').digest('hex');
     const initial = { passwordHash: defaultHash, defaultChanged: false };
-    fs.mkdirSync(path.dirname(AUTH_FILE), { recursive: true });
-    fs.writeFileSync(AUTH_FILE, JSON.stringify(initial, null, 2));
+    try {
+      fs.mkdirSync(path.dirname(AUTH_FILE), { recursive: true });
+      fs.writeFileSync(AUTH_FILE, JSON.stringify(initial, null, 2));
+    } catch (e) {}
     return initial;
   }
-  return JSON.parse(fs.readFileSync(AUTH_FILE, 'utf8'));
+  try {
+    return JSON.parse(fs.readFileSync(AUTH_FILE, 'utf8'));
+  } catch (e) {
+    return { passwordHash: crypto.createHash('sha256').update('lolla123').digest('hex') };
+  }
 }
 
 // Tokens de sessão ativos em memória
@@ -63,7 +70,7 @@ function verifyAuth(req) {
 }
 
 const server = http.createServer(async (req, res) => {
-  const [urlPath] = req.url.split('?');
+  const [urlPath] = (req.url || '/').split('?');
 
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -80,26 +87,31 @@ const server = http.createServer(async (req, res) => {
     try {
       const raw = await readBody(req);
       const { password } = JSON.parse(raw);
-      const auth = getAuthData();
       const hash = crypto.createHash('sha256').update(password || '').digest('hex');
+      const auth = getAuthData();
 
       if (hash === auth.passwordHash) {
         const token = getExpectedToken(auth.passwordHash);
         activeTokens.add(token);
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-        res.end(JSON.stringify({ success: true, token, defaultChanged: auth.defaultChanged }));
+        res.end(JSON.stringify({
+          success: true,
+          token,
+          defaultChanged: auth.defaultChanged,
+          message: 'Autenticado com sucesso'
+        }));
       } else {
         res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8' });
-        res.end(JSON.stringify({ error: 'Senha de administrador incorreta' }));
+        res.end(JSON.stringify({ error: 'Senha incorreta' }));
       }
     } catch (err) {
       res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
-      res.end(JSON.stringify({ error: 'Dados inválidos' }));
+      res.end(JSON.stringify({ error: 'Requisição inválida' }));
     }
     return;
   }
 
-  // API: Verificar se token de sessão continua válido
+  // API: Verificar Token
   if (urlPath === '/api/auth/verify' && req.method === 'GET') {
     const isAuth = verifyAuth(req);
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -107,37 +119,46 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // API: Logout
-  if (urlPath === '/api/auth/logout' && req.method === 'POST') {
-    const authHeader = req.headers['authorization'] || '';
-    const token = authHeader.replace(/^Bearer\s+/i, '').trim();
-    if (token) activeTokens.delete(token);
-    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-    res.end(JSON.stringify({ success: true }));
-    return;
-  }
-
-  // API: Alterar senha do Administrador
+  // API: Alterar Senha
   if (urlPath === '/api/auth/change-password' && req.method === 'POST') {
     if (!verifyAuth(req)) {
       res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8' });
-      res.end(JSON.stringify({ error: 'Acesso não autorizado' }));
+      res.end(JSON.stringify({ error: 'Acesso negado' }));
       return;
     }
+
     try {
       const raw = await readBody(req);
-      const { newPassword } = JSON.parse(raw);
-      if (!newPassword || newPassword.length < 4) {
+      const { currentPassword, newPassword } = JSON.parse(raw);
+
+      if (!newPassword || newPassword.length < 6) {
         res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
-        res.end(JSON.stringify({ error: 'A nova senha deve ter no mínimo 4 caracteres' }));
+        res.end(JSON.stringify({ error: 'A nova senha deve ter no mínimo 6 caracteres' }));
         return;
       }
+
+      const auth = getAuthData();
+      const currentHash = crypto.createHash('sha256').update(currentPassword || '').digest('hex');
+
+      if (currentHash !== auth.passwordHash) {
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ error: 'Senha atual incorreta' }));
+        return;
+      }
+
       const newHash = crypto.createHash('sha256').update(newPassword).digest('hex');
+      auth.passwordHash = newHash;
+      auth.defaultChanged = true;
+      try {
+        fs.writeFileSync(AUTH_FILE, JSON.stringify(auth, null, 2), 'utf8');
+      } catch (e) {}
+
+      activeTokens.clear();
       const newToken = getExpectedToken(newHash);
       activeTokens.add(newToken);
-      fs.writeFileSync(AUTH_FILE, JSON.stringify({ passwordHash: newHash, defaultChanged: true }, null, 2));
+
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-      res.end(JSON.stringify({ success: true, token: newToken, message: 'Senha alterada com sucesso!' }));
+      res.end(JSON.stringify({ success: true, token: newToken, message: 'Senha alterada com sucesso' }));
     } catch (err) {
       res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: err.message }));
@@ -145,10 +166,14 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // API: Obter cardápio (Público, para os clientes verem os produtos)
+  // API: Ler cardápio
   if (urlPath === '/api/cardapio' && req.method === 'GET') {
     try {
-      const data = fs.readFileSync(CARDAPIO_FILE, 'utf8');
+      let targetFile = CARDAPIO_FILE;
+      if (!fs.existsSync(targetFile)) {
+        targetFile = path.join(__dirname, 'data/cardapio.json');
+      }
+      const data = fs.readFileSync(targetFile, 'utf8');
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(data);
     } catch (err) {
@@ -158,11 +183,11 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // API: Salvar cardápio (PROTEGIDO: Somente com token de administrador)
+  // API: Salvar cardápio
   if (urlPath === '/api/cardapio' && req.method === 'POST') {
     if (!verifyAuth(req)) {
       res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8' });
-      res.end(JSON.stringify({ error: 'Acesso negado. Apenas o administrador pode alterar o cardápio.' }));
+      res.end(JSON.stringify({ error: 'Acesso negado' }));
       return;
     }
 
@@ -176,7 +201,6 @@ const server = http.createServer(async (req, res) => {
       }
 
       fs.writeFileSync(CARDAPIO_FILE, JSON.stringify(data, null, 2), 'utf8');
-
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ success: true, totalItens: data.itens.length }));
     } catch (err) {
@@ -186,60 +210,10 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // API: Upload de imagem (PROTEGIDO: Somente com token de administrador)
-  if (urlPath === '/api/upload' && req.method === 'POST') {
-    if (!verifyAuth(req)) {
-      res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8' });
-      res.end(JSON.stringify({ error: 'Acesso negado. Apenas o administrador pode fazer upload.' }));
-      return;
-    }
-
-    try {
-      const raw = await readBody(req);
-      const { dataUrl, filename } = JSON.parse(raw);
-
-      if (!dataUrl) {
-        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
-        res.end(JSON.stringify({ error: 'Imagem não informada' }));
-        return;
-      }
-
-      const match = dataUrl.match(/^data:image\/([a-zA-Z0-9+.-]+);base64,(.+)$/);
-      if (!match) {
-        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
-        res.end(JSON.stringify({ error: 'Formato base64 inválido' }));
-        return;
-      }
-
-      const ext = match[1] === 'jpeg' ? 'jpg' : match[1];
-      const base64Data = match[2];
-      const buffer = Buffer.from(base64Data, 'base64');
-
-      const outDir = path.join(__dirname, 'assets/fotos');
-      fs.mkdirSync(outDir, { recursive: true });
-
-      const safeName = (filename || 'foto')
-        .toLowerCase()
-        .replace(/[^a-z0-9]/g, '_')
-        .slice(0, 30);
-      const outFilename = `${Date.now()}_${safeName}.${ext}`;
-      const outPath = path.join(outDir, outFilename);
-
-      fs.writeFileSync(outPath, buffer);
-
-      const publicUrl = `assets/fotos/${outFilename}`;
-      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-      res.end(JSON.stringify({ success: true, url: publicUrl, filename: outFilename }));
-    } catch (err) {
-      res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
-      res.end(JSON.stringify({ error: err.message }));
-    }
-    return;
-  }
-
-  // Rota especial /admin e /gerenciar: entrega index.html para o dono poder logar
+  // Rota especial /admin e /gerenciar
   if (urlPath === '/admin' || urlPath === '/gerenciar') {
-    const indexPath = path.join(__dirname, 'index.html');
+    let indexPath = path.join(ROOT_DIR, 'index.html');
+    if (!fs.existsSync(indexPath)) indexPath = path.join(__dirname, 'index.html');
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache' });
     fs.createReadStream(indexPath).pipe(res);
     return;
@@ -249,10 +223,23 @@ const server = http.createServer(async (req, res) => {
   let safePath = path.normalize(urlPath).replace(/^(\.\.[/\\])+/, '');
   if (safePath === '/' || safePath === '\\') safePath = '/index.html';
 
-  const filePath = path.join(__dirname, safePath);
+  let filePath = path.join(ROOT_DIR, safePath);
+  if (!fs.existsSync(filePath)) {
+    filePath = path.join(__dirname, safePath);
+  }
 
   fs.stat(filePath, (err, stats) => {
     if (err || !stats.isFile()) {
+      // Se não encontrou o arquivo e não possui extensão, tenta index.html
+      if (!path.extname(safePath)) {
+        let fallbackIndex = path.join(ROOT_DIR, 'index.html');
+        if (!fs.existsSync(fallbackIndex)) fallbackIndex = path.join(__dirname, 'index.html');
+        if (fs.existsSync(fallbackIndex)) {
+          res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+          fs.createReadStream(fallbackIndex).pipe(res);
+          return;
+        }
+      }
       res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
       res.end('404 Não Encontrado');
       return;
@@ -263,15 +250,19 @@ const server = http.createServer(async (req, res) => {
 
     res.writeHead(200, {
       'Content-Type': contentType,
-      'Cache-Control': 'no-cache'
+      'Cache-Control': ext === '.html' ? 'no-cache' : 'public, max-age=3600'
     });
 
     fs.createReadStream(filePath).pipe(res);
   });
 });
 
-server.listen(PORT, () => {
-  console.log(`\n🍦 Cardápio Sorveteria Lolla rodando com sucesso!`);
-  console.log(`➡️  Acesso Clientes: http://localhost:${PORT}`);
-  console.log(`🔒 Acesso Administrador (Dono): http://localhost:${PORT}/admin\n`);
-});
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+  server.listen(PORT, () => {
+    console.log(`\n🍦 Cardápio Sorveteria Lolla rodando com sucesso!`);
+    console.log(`➡️  Acesso Clientes: http://localhost:${PORT}`);
+    console.log(`🔒 Acesso Administrador (Dono): http://localhost:${PORT}/admin\n`);
+  });
+}
+
+module.exports = server;
