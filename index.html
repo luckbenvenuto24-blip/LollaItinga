@@ -513,15 +513,127 @@
         <div class="campo">
           <label>📸 Foto do Produto</label>
           <div class="foto-seletor">
-            <div id="prod-foto-preview" class="foto-preview">
-              <span>Sem foto</span>
-            </div>
             <div style="flex:1">
               <label class="btn-admin secundario" style="display:inline-block;cursor:pointer;margin-bottom:8px">
                 📁 Escolher Foto do Computador / Celular
                 <input type="file" id="prod-foto-arquivo" accept="image/*" style="display:none">
               </label>
               <input type="text" id="prod-foto-url" placeholder="ou cole o link da foto (deixe vazio p/ manter a atual)">
+            </div>
+          </div>
+        </div>
+
+        <!-- PAINEL DE AJUSTES E ENQUADRAMENTO DA FOTO -->
+        <div class="campo painel-ajustes-foto" id="painel-ajustes-foto">
+          <div class="painel-foto-header">
+            <label style="font-weight:700;color:var(--magenta);display:flex;align-items:center;gap:6px">
+              <span>🎨 Ajustes da Foto</span>
+              <span style="font-size:11.5px;font-weight:600;color:var(--tinta-fraca)">(girar em pé, zoom e posição)</span>
+            </label>
+            <button type="button" class="btn-reset-ajustes" onclick="resetarAjustesFoto()" title="Redefinir para o padrão (0° | 100% | Centro)">
+              ↺ Restaurar Padrão
+            </button>
+          </div>
+
+          <div class="foto-editor-wrap">
+            <!-- Visual Preview Interativo -->
+            <div class="foto-preview-container">
+              <div id="prod-foto-preview" class="foto-preview" title="Arraste com o mouse para reposicionar a foto">
+                <span>Sem foto</span>
+              </div>
+              <span class="foto-preview-dica">✋ Arraste a foto acima para mover</span>
+            </div>
+
+            <!-- Controles de Ajustes -->
+            <div class="foto-controles-grid">
+              <!-- Rotação -->
+              <div class="controle-linha">
+                <div class="controle-label-wrap">
+                  <span class="controle-titulo">🔄 Girar Foto (Em pé / Deitada):</span>
+                  <span id="prod-img-rot-badge" class="badge-ajuste-val">0°</span>
+                </div>
+                <div class="botoes-rotacao">
+                  <button type="button" class="btn-rot-acao" onclick="girarFotoPasso(90)" title="Girar 90 graus no sentido horário">
+                    🔄 Girar 90°
+                  </button>
+                  <div class="botoes-angulos">
+                    <button type="button" class="btn-rot-ang ativo" data-ang="0" onclick="definirRotacaoFoto(0)">0° Normal</button>
+                    <button type="button" class="btn-rot-ang" data-ang="90" onclick="definirRotacaoFoto(90)">90° Em pé</button>
+                    <button type="button" class="btn-rot-ang" data-ang="180" onclick="definirRotacaoFoto(180)">180° Invertida</button>
+                    <button type="button" class="btn-rot-ang" data-ang="270" onclick="definirRotacaoFoto(270)">270° Em pé</button>
+                  </div>
+                </div>
+                <input type="hidden" id="prod-img-rot" value="0">
+              </div>
+
+              <!-- Tamanho / Zoom -->
+              <div class="controle-linha">
+                <div class="controle-label-wrap">
+                  <span class="controle-titulo">🔍 Tamanho / Zoom da Foto:</span>
+                  <div class="badge-num-input-wrap">
+                    <input type="number" id="prod-img-zoom-num" min="30" max="250" step="1" value="100" class="input-ajuste-num" oninput="definirZoomFoto(this.value)">
+                    <span class="input-ajuste-unidade">%</span>
+                  </div>
+                </div>
+                <div class="slider-com-botoes">
+                  <button type="button" class="btn-ajuste-step" onclick="alterarZoomFoto(-5)" title="Diminuir zoom 5%">-</button>
+                  <input type="range" id="prod-img-zoom" min="30" max="250" step="1" value="100" class="slider-ajuste" oninput="definirZoomFoto(this.value)">
+                  <button type="button" class="btn-ajuste-step" onclick="alterarZoomFoto(5)" title="Aumentar zoom 5%">+</button>
+                </div>
+                <div class="atalhos-zoom">
+                  <span class="atalhos-label">Atalhos rápidos:</span>
+                  <button type="button" class="btn-zoom-pills" onclick="definirZoomFoto(60)">60%</button>
+                  <button type="button" class="btn-zoom-pills" onclick="definirZoomFoto(70)">70%</button>
+                  <button type="button" class="btn-zoom-pills" onclick="definirZoomFoto(85)">85%</button>
+                  <button type="button" class="btn-zoom-pills" onclick="definirZoomFoto(100)">100% (Padrão)</button>
+                  <button type="button" class="btn-zoom-pills" onclick="definirZoomFoto(120)">120%</button>
+                </div>
+              </div>
+
+              <!-- Posição Vertical -->
+              <div class="controle-linha">
+                <div class="controle-label-wrap">
+                  <span class="controle-titulo">↕️ Posição Vertical (Cima / Baixo):</span>
+                  <span id="prod-img-pos-y-badge" class="badge-ajuste-val">Centro (0%)</span>
+                </div>
+                <div class="slider-com-botoes">
+                  <button type="button" class="btn-ajuste-step" onclick="alterarPosYFoto(-5)" title="Subir foto">⬆ Subir</button>
+                  <input type="range" id="prod-img-pos-y" min="-60" max="60" step="1" value="0" class="slider-ajuste" oninput="definirPosYFoto(this.value)">
+                  <button type="button" class="btn-ajuste-step" onclick="alterarPosYFoto(5)" title="Descer foto">⬇ Descer</button>
+                  <button type="button" class="btn-ajuste-mini" onclick="definirPosYFoto(0)" title="Centralizar na vertical">0%</button>
+                </div>
+              </div>
+
+              <!-- Posição Horizontal -->
+              <div class="controle-linha">
+                <div class="controle-label-wrap">
+                  <span class="controle-titulo">↔️ Posição Horizontal (Esquerda / Direita):</span>
+                  <span id="prod-img-pos-x-badge" class="badge-ajuste-val">Centro (0%)</span>
+                </div>
+                <div class="slider-com-botoes">
+                  <button type="button" class="btn-ajuste-step" onclick="alterarPosXFoto(-5)" title="Mover para a esquerda">⬅ Esq</button>
+                  <input type="range" id="prod-img-pos-x" min="-60" max="60" step="1" value="0" class="slider-ajuste" oninput="definirPosXFoto(this.value)">
+                  <button type="button" class="btn-ajuste-step" onclick="alterarPosXFoto(5)" title="Mover para a direita">➡ Dir</button>
+                  <button type="button" class="btn-ajuste-mini" onclick="definirPosXFoto(0)" title="Centralizar na horizontal">0%</button>
+                </div>
+              </div>
+
+              <!-- Enquadramento -->
+              <div class="controle-linha">
+                <div class="controle-label-wrap">
+                  <span class="controle-titulo">🖼️ Enquadramento:</span>
+                </div>
+                <div class="opcoes-fit">
+                  <label class="fit-opcao">
+                    <input type="radio" name="prod-img-fit" value="cover" checked onchange="definirFitFoto(this.value)">
+                    <span>Preencher Quadrado (Cover)</span>
+                  </label>
+                  <label class="fit-opcao">
+                    <input type="radio" name="prod-img-fit" value="contain" onchange="definirFitFoto(this.value)">
+                    <span>Conter Tudo Sem Cortar (Contain)</span>
+                  </label>
+                </div>
+              </div>
             </div>
           </div>
         </div>

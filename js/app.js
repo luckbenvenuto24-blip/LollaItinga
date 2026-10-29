@@ -266,17 +266,31 @@ function link(it) {
   return `https://wa.me/${CONFIG.whatsapp}?text=` + encodeURIComponent(mensagem);
 }
 
+function getImageTransformStyle(it) {
+  if (!it) return '';
+  const rot = Number(it.imgRot) || 0;
+  const scale = (it.imgScale !== undefined && it.imgScale !== null && it.imgScale !== '') ? Number(it.imgScale) : 100;
+  const x = Number(it.imgPosX) || 0;
+  const y = Number(it.imgPosY) || 0;
+  const fit = it.imgFit || 'cover';
+  return `--img-rot:${rot}deg;--img-scale:${scale / 100};--img-x:${x}%;--img-y:${y}%;--img-fit:${fit};object-fit:${fit};`;
+}
+
 function resolveImageTag(it, i) {
+  const st = getImageTransformStyle(it);
+  const styleAttr = st ? ` style="${st}"` : '';
   if (it.img) {
     return `<img src="${it.img}" alt="${esc(it.n)}" width="400" height="400"
+                 ${styleAttr}
                  loading="${i < 6 ? 'eager' : 'lazy'}" decoding="async"
                  fetchpriority="${i < 4 ? 'high' : 'auto'}">`;
   }
   if (it.w4) {
-    return `<picture>
+    return `<picture${styleAttr}>
       <source type="image/webp" sizes="(min-width:880px) 250px, (min-width:560px) 32vw, 47vw"
               srcset="${CONFIG.fotosBaseUrl}${it.w4} 400w, ${CONFIG.fotosBaseUrl}${it.w6} 600w, ${CONFIG.fotosBaseUrl}${it.w8} 800w">
       <img src="${CONFIG.fotosBaseUrl}${it.j}" alt="${esc(it.n)}" width="400" height="400"
+           ${styleAttr}
            loading="${i < 6 ? 'eager' : 'lazy'}" decoding="async"
            fetchpriority="${i < 4 ? 'high' : 'auto'}">
     </picture>`;
@@ -525,7 +539,7 @@ function card(it, i, itemIndex) {
   const { title, size, desc } = formatProduct(it);
 
   return `<article class="card ${oculto ? 'card-oculto' : ''}" data-idx="${itemIndex}" style="animation-delay:${Math.min(i, 11) * 28}ms">
-    <div class="foto">
+    <div class="foto" style="${getImageTransformStyle(it)}">
       ${imgHtml}
       ${off ? `<span class="off">-${off}%</span>` : ''}
       <div class="card-admin-actions">
@@ -588,7 +602,7 @@ function renderDestaquesMomento() {
 
     return `
       <div class="destaque-momento-card">
-        <div class="destaque-momento-foto">
+        <div class="destaque-momento-foto" style="${getImageTransformStyle(it)}">
           ${imgHtml}
           ${off ? `<span class="off">-${off}%</span>` : ''}
         </div>
@@ -945,8 +959,9 @@ function renderCarrinho() {
 
   corpo.innerHTML = carrinho.map((item, idx) => {
     const subtotal = (parseFloat(item.preco) || 0) * (parseInt(item.qtd, 10) || 1);
+    const imgStyle = getImageTransformStyle(item);
     const imgTag = item.img
-      ? `<img src="${esc(item.img)}" alt="${esc(item.nome)}">`
+      ? `<img src="${esc(item.img)}" alt="${esc(item.nome)}" style="${imgStyle}">`
       : `<span style="font-size:24px">🍨</span>`;
 
     // Detalhes extras do produto
@@ -961,7 +976,7 @@ function renderCarrinho() {
 
     return `
       <div class="carrinho-item-card">
-        <div class="carrinho-item-foto">
+        <div class="carrinho-item-foto" style="${imgStyle}">
           ${imgTag}
         </div>
         <div class="carrinho-item-info">
@@ -1095,6 +1110,11 @@ function adicionarAoPedido(itemIndex, ev) {
       preco,
       precoAntigo,
       img: imgSrc,
+      imgRot: it.imgRot || 0,
+      imgScale: it.imgScale !== undefined ? it.imgScale : 100,
+      imgPosX: it.imgPosX || 0,
+      imgPosY: it.imgPosY || 0,
+      imgFit: it.imgFit || 'cover',
       qtd: 1
     });
   }
@@ -1636,6 +1656,217 @@ function descobrirGrupoDaCategoria(nomeCat) {
   return getGrupoDaCategoria(nomeCat);
 }
 
+// ============================================================
+// AJUSTES DE FOTO NO MODAL DE PRODUTOS (Girar, Zoom, Posição, Fit)
+// ============================================================
+
+window.definirRotacaoFoto = function (ang) {
+  const rotInput = $('#prod-img-rot');
+  if (!rotInput) return;
+  const val = ((parseInt(ang, 10) % 360) + 360) % 360;
+  rotInput.value = val;
+  atualizarPreviewModal();
+};
+
+window.girarFotoPasso = function (delta = 90) {
+  const rotInput = $('#prod-img-rot');
+  if (!rotInput) return;
+  const atual = parseInt(rotInput.value, 10) || 0;
+  definirRotacaoFoto(atual + delta);
+};
+
+window.definirZoomFoto = function (val) {
+  let num = parseInt(val, 10);
+  if (isNaN(num)) num = 100;
+  num = Math.max(30, Math.min(250, num));
+  const slider = $('#prod-img-zoom');
+  const inputNum = $('#prod-img-zoom-num');
+  if (slider) slider.value = num;
+  if (inputNum && parseInt(inputNum.value, 10) !== num) inputNum.value = num;
+  atualizarPreviewModal();
+};
+
+window.alterarZoomFoto = function (delta) {
+  const slider = $('#prod-img-zoom');
+  const atual = parseInt(slider ? slider.value : 100, 10) || 100;
+  definirZoomFoto(atual + delta);
+};
+
+window.definirPosYFoto = function (val) {
+  let num = parseInt(val, 10);
+  if (isNaN(num)) num = 0;
+  num = Math.max(-60, Math.min(60, num));
+  const slider = $('#prod-img-pos-y');
+  if (slider) slider.value = num;
+  atualizarPreviewModal();
+};
+
+window.alterarPosYFoto = function (delta) {
+  const slider = $('#prod-img-pos-y');
+  const atual = parseInt(slider ? slider.value : 0, 10) || 0;
+  definirPosYFoto(atual + delta);
+};
+
+window.definirPosXFoto = function (val) {
+  let num = parseInt(val, 10);
+  if (isNaN(num)) num = 0;
+  num = Math.max(-60, Math.min(60, num));
+  const slider = $('#prod-img-pos-x');
+  if (slider) slider.value = num;
+  atualizarPreviewModal();
+};
+
+window.alterarPosXFoto = function (delta) {
+  const slider = $('#prod-img-pos-x');
+  const atual = parseInt(slider ? slider.value : 0, 10) || 0;
+  definirPosXFoto(atual + delta);
+};
+
+window.definirFitFoto = function (val) {
+  const radios = document.querySelectorAll('input[name="prod-img-fit"]');
+  radios.forEach(r => {
+    r.checked = (r.value === val);
+  });
+  atualizarPreviewModal();
+};
+
+window.resetarAjustesFoto = function () {
+  definirRotacaoFoto(0);
+  definirZoomFoto(100);
+  definirPosXFoto(0);
+  definirPosYFoto(0);
+  definirFitFoto('cover');
+  atualizarPreviewModal();
+};
+
+window.atualizarPreviewModal = function () {
+  const rotInput = $('#prod-img-rot');
+  const zoomInput = $('#prod-img-zoom');
+  const zoomNumInput = $('#prod-img-zoom-num');
+  const posXInput = $('#prod-img-pos-x');
+  const posYInput = $('#prod-img-pos-y');
+  const fitRadio = document.querySelector('input[name="prod-img-fit"]:checked');
+
+  const rot = parseInt(rotInput ? rotInput.value : 0, 10) || 0;
+  const zoom = parseInt(zoomInput ? zoomInput.value : 100, 10) || 100;
+  const posX = parseInt(posXInput ? posXInput.value : 0, 10) || 0;
+  const posY = parseInt(posYInput ? posYInput.value : 0, 10) || 0;
+  const fit = fitRadio ? fitRadio.value : 'cover';
+
+  // Atualiza os badges visuais
+  const rotBadge = $('#prod-img-rot-badge');
+  if (rotBadge) rotBadge.textContent = `${rot}°`;
+
+  if (zoomNumInput && parseInt(zoomNumInput.value, 10) !== zoom) {
+    zoomNumInput.value = zoom;
+  }
+
+  const posXBadge = $('#prod-img-pos-x-badge');
+  if (posXBadge) {
+    if (posX === 0) posXBadge.textContent = 'Centro (0%)';
+    else if (posX < 0) posXBadge.textContent = `Esq (${posX}%)`;
+    else posXBadge.textContent = `Dir (+${posX}%)`;
+  }
+
+  const posYBadge = $('#prod-img-pos-y-badge');
+  if (posYBadge) {
+    if (posY === 0) posYBadge.textContent = 'Centro (0%)';
+    else if (posY < 0) posYBadge.textContent = `Cima (${posY}%)`;
+    else posYBadge.textContent = `Baixo (+${posY}%)`;
+  }
+
+  // Atualiza botões de ângulo
+  document.querySelectorAll('.btn-rot-ang').forEach(btn => {
+    const ang = parseInt(btn.getAttribute('data-ang'), 10);
+    if (ang === rot) btn.classList.add('ativo');
+    else btn.classList.remove('ativo');
+  });
+
+  // Atualiza o preview na tela
+  const preview = $('#prod-foto-preview');
+  if (preview) {
+    preview.style.setProperty('--img-rot', `${rot}deg`);
+    preview.style.setProperty('--img-scale', `${zoom / 100}`);
+    preview.style.setProperty('--img-x', `${posX}%`);
+    preview.style.setProperty('--img-y', `${posY}%`);
+    preview.style.setProperty('--img-fit', fit);
+
+    const img = preview.querySelector('img');
+    if (img) {
+      img.style.setProperty('--img-rot', `${rot}deg`);
+      img.style.setProperty('--img-scale', `${zoom / 100}`);
+      img.style.setProperty('--img-x', `${posX}%`);
+      img.style.setProperty('--img-y', `${posY}%`);
+      img.style.setProperty('--img-fit', fit);
+      img.style.objectFit = fit;
+    }
+  }
+};
+
+function setupFotoPreviewDrag() {
+  const preview = $('#prod-foto-preview');
+  if (!preview || preview._dragInitialized) return;
+  preview._dragInitialized = true;
+
+  let isDragging = false;
+  let startX = 0;
+  let startY = 0;
+  let initialPosX = 0;
+  let initialPosY = 0;
+
+  function onPointerDown(e) {
+    const target = e.target;
+    if (!preview.contains(target)) return;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    isDragging = true;
+    startX = clientX;
+    startY = clientY;
+    const posXInput = $('#prod-img-pos-x');
+    const posYInput = $('#prod-img-pos-y');
+    initialPosX = parseInt(posXInput ? posXInput.value : 0, 10) || 0;
+    initialPosY = parseInt(posYInput ? posYInput.value : 0, 10) || 0;
+    preview.style.cursor = 'grabbing';
+    if (e.cancelable) e.preventDefault();
+  }
+
+  function onPointerMove(e) {
+    if (!isDragging) return;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const dx = clientX - startX;
+    const dy = clientY - startY;
+
+    // Converte pixels arrastados em porcentagem (baseado na largura do preview ~160px)
+    const deltaXPercent = Math.round((dx / 160) * 100);
+    const deltaYPercent = Math.round((dy / 160) * 100);
+
+    let newX = Math.max(-60, Math.min(60, initialPosX + deltaXPercent));
+    let newY = Math.max(-60, Math.min(60, initialPosY + deltaYPercent));
+
+    const posXInput = $('#prod-img-pos-x');
+    const posYInput = $('#prod-img-pos-y');
+    if (posXInput) posXInput.value = newX;
+    if (posYInput) posYInput.value = newY;
+    atualizarPreviewModal();
+  }
+
+  function onPointerUp() {
+    if (isDragging) {
+      isDragging = false;
+      preview.style.cursor = 'grab';
+    }
+  }
+
+  preview.addEventListener('mousedown', onPointerDown);
+  window.addEventListener('mousemove', onPointerMove);
+  window.addEventListener('mouseup', onPointerUp);
+
+  preview.addEventListener('touchstart', onPointerDown, { passive: false });
+  window.addEventListener('touchmove', onPointerMove, { passive: false });
+  window.addEventListener('touchend', onPointerUp);
+}
+
 window.abrirModalNovoProduto = function (catPreSelecionada = '') {
   if (!isAdmin) {
     abrirModalLogin();
@@ -1669,8 +1900,14 @@ window.abrirModalNovoProduto = function (catPreSelecionada = '') {
   const itemExemplo = D.itens.find(it => it && it.c === categoriaInicial);
   if (itemExemplo) {
     $('#prod-foto-preview').innerHTML = resolveImageTag(itemExemplo, 0);
+    definirRotacaoFoto(itemExemplo.imgRot !== undefined ? itemExemplo.imgRot : 0);
+    definirZoomFoto(itemExemplo.imgScale !== undefined ? itemExemplo.imgScale : 100);
+    definirPosXFoto(itemExemplo.imgPosX !== undefined ? itemExemplo.imgPosX : 0);
+    definirPosYFoto(itemExemplo.imgPosY !== undefined ? itemExemplo.imgPosY : 0);
+    definirFitFoto(itemExemplo.imgFit || 'cover');
   } else {
     $('#prod-foto-preview').innerHTML = '<span>Sem foto</span>';
+    resetarAjustesFoto();
   }
 
   popularSelectCategorias(categoriaInicial);
@@ -1712,6 +1949,13 @@ window.abrirModalEditar = function (index) {
 
   const previewEl = $('#prod-foto-preview');
   previewEl.innerHTML = resolveImageTag(it, 0);
+
+  definirRotacaoFoto(it.imgRot !== undefined ? it.imgRot : 0);
+  definirZoomFoto(it.imgScale !== undefined ? it.imgScale : 100);
+  definirPosXFoto(it.imgPosX !== undefined ? it.imgPosX : 0);
+  definirPosYFoto(it.imgPosY !== undefined ? it.imgPosY : 0);
+  definirFitFoto(it.imgFit || 'cover');
+  atualizarPreviewModal();
 
   popularSelectCategorias(it.c);
   $('#modal-produto').classList.add('aberto');
@@ -1791,6 +2035,11 @@ function toggleCampoNovaCategoria() {
         const itemExemplo = D.itens.find(it => it && it.c === sel.value);
         if (itemExemplo) {
           $('#prod-foto-preview').innerHTML = resolveImageTag(itemExemplo, 0);
+          definirRotacaoFoto(itemExemplo.imgRot !== undefined ? itemExemplo.imgRot : 0);
+          definirZoomFoto(itemExemplo.imgScale !== undefined ? itemExemplo.imgScale : 100);
+          definirPosXFoto(itemExemplo.imgPosX !== undefined ? itemExemplo.imgPosX : 0);
+          definirPosYFoto(itemExemplo.imgPosY !== undefined ? itemExemplo.imgPosY : 0);
+          definirFitFoto(itemExemplo.imgFit || 'cover');
         }
       }
     }
@@ -1802,6 +2051,7 @@ async function processarFotoSelecionada(file) {
   const url = await uploadImagemArquivo(file);
   $('#prod-foto-preview').innerHTML = `<img src="${url}">`;
   $('#prod-foto-url').value = url;
+  atualizarPreviewModal();
 }
 
 async function submitProduto(e) {
@@ -1839,6 +2089,12 @@ async function submitProduto(e) {
   if (precoAntigo <= preco) precoAntigo = 0;
 
   const fotoUrl = $('#prod-foto-url').value.trim();
+  const fotoRot = Number($('#prod-img-rot') ? $('#prod-img-rot').value : 0) || 0;
+  const fotoScale = Number($('#prod-img-zoom') ? $('#prod-img-zoom').value : 100) || 100;
+  const fotoPosX = Number($('#prod-img-pos-x') ? $('#prod-img-pos-x').value : 0) || 0;
+  const fotoPosY = Number($('#prod-img-pos-y') ? $('#prod-img-pos-y').value : 0) || 0;
+  const fotoFitEl = document.querySelector('input[name="prod-img-fit"]:checked');
+  const fotoFit = fotoFitEl ? fotoFitEl.value : 'cover';
 
   const itemObj = {
     n: nome,
@@ -1846,7 +2102,12 @@ async function submitProduto(e) {
     c: categoria,
     g: grupoSel,
     p: preco,
-    po: precoAntigo
+    po: precoAntigo,
+    imgRot: fotoRot,
+    imgScale: fotoScale,
+    imgPosX: fotoPosX,
+    imgPosY: fotoPosY,
+    imgFit: fotoFit
   };
 
   if (fotoUrl) {
@@ -2581,8 +2842,12 @@ function setupEvents() {
   });
   $('#prod-foto-url').addEventListener('input', e => {
     const url = e.target.value.trim();
-    if (url) $('#prod-foto-preview').innerHTML = `<img src="${url}">`;
+    if (url) {
+      $('#prod-foto-preview').innerHTML = `<img src="${url}">`;
+      atualizarPreviewModal();
+    }
   });
+  setupFotoPreviewDrag();
   $('#form-config').addEventListener('submit', salvarConfigLoja);
 
   // Formulários de Destaque, Blog e Galeria
