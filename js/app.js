@@ -1580,9 +1580,10 @@ async function submeterNovaSenha(e) {
  * ========================================================== */
 
 const SUPABASE_CONFIG = {
-  url: 'https://bpxqanowjvlzifxkyypj.supabase.co',
-  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJweHFhbm93anZsemlmeGt5eXBqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxNjcxNDMsImV4cCI6MjA5NTc0MzE0M30.9wEYk9SZGXHb4fWglNuHyyeKlV3dsd51d40HKFBuHrI',
-  table: 'lolla_cardapio_online'
+  url: 'https://fflaatbvwwtvckuselkr.supabase.co',
+  anonKey: 'sb_publishable_qctRhqScOKjKgjZWtnlWbA_nA1dsm4Z',
+  table: 'lolla_cardapio_online',
+  bucket: 'produtos'
 };
 
 /* ==========================================================
@@ -1632,30 +1633,42 @@ function comprimirImagemArquivo(file, maxDim = 800, quality = 0.82) {
 }
 
 /* ==========================================================
- * UPLOAD HELPER GENÉRICO (COM OTIMIZAÇÃO AUTOMÁTICA)
+ * UPLOAD DIRETO PARA SUPABASE STORAGE (ARQUIVOS LEVES E PERMANENTES)
  * ========================================================== */
 
 async function uploadImagemArquivo(file) {
   const compressedDataUrl = await comprimirImagemArquivo(file);
-  if (isAdmin && adminToken) {
-    try {
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${adminToken}`
-        },
-        body: JSON.stringify({ dataUrl: compressedDataUrl, filename: file.name })
-      });
-      if (res.ok) {
-        const json = await res.json();
-        if (json.url) {
-          toast('📸 Foto enviada e salva!');
-          return json.url;
-        }
-      }
-    } catch (err) {}
+
+  // Tenta upload direto para o Bucket de Storage do Supabase (para desonerar o banco e a Vercel)
+  try {
+    const ext = file.name ? file.name.split('.').pop().toLowerCase() : 'jpg';
+    const cleanExt = ['jpg', 'jpeg', 'png', 'webp'].includes(ext) ? ext : 'jpg';
+    const filename = `foto-${Date.now()}-${Math.random().toString(36).slice(2, 7)}.${cleanExt}`;
+
+    const blob = await fetch(compressedDataUrl).then(r => r.blob());
+
+    const resStorage = await fetch(`${SUPABASE_CONFIG.url}/storage/v1/object/${SUPABASE_CONFIG.bucket}/${filename}`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_CONFIG.anonKey,
+        'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`,
+        'Content-Type': blob.type || 'image/jpeg',
+        'x-upsert': 'true'
+      },
+      body: blob
+    });
+
+    if (resStorage.ok) {
+      const publicUrl = `${SUPABASE_CONFIG.url}/storage/v1/object/public/${SUPABASE_CONFIG.bucket}/${filename}`;
+      toast('📸 Foto salva no Supabase Storage com sucesso!');
+      return publicUrl;
+    } else {
+      console.warn('Storage bucket ainda não criado ou sem permissão, usando base64 comprimido:', resStorage.status);
+    }
+  } catch (errStorage) {
+    console.warn('Erro ao subir para o Supabase Storage:', errStorage);
   }
+
   toast('📸 Foto otimizada para carregamento rápido!');
   return compressedDataUrl;
 }
@@ -3074,6 +3087,7 @@ async function init() {
 
   // 1. Tenta carregar da Nuvem Supabase Oficial primeiro (onde todos os PCs sincronizam em tempo real)
   let carregouNuvem = false;
+  let nuvemPrecisaSemeadura = false;
   try {
     const resSupa = await fetch(`${SUPABASE_CONFIG.url}/rest/v1/${SUPABASE_CONFIG.table}?id=eq.principal&select=*`, {
       headers: {
@@ -3092,6 +3106,8 @@ async function init() {
         try {
           localStorage.setItem(STORAGE_KEY_DATA, JSON.stringify(D));
         } catch (e) {}
+      } else if (rows && rows.length === 0) {
+        nuvemPrecisaSemeadura = true;
       }
     }
   } catch (errSupa) {
@@ -3131,6 +3147,11 @@ async function init() {
   // 4. Fallback final: dados embutidos
   if (!D && window.__CARDAPIO_DATA__) {
     D = JSON.parse(JSON.stringify(window.__CARDAPIO_DATA__));
+  }
+
+  // Se a tabela Supabase acabou de ser criada e está vazia, envia os dados iniciais automaticamente
+  if (nuvemPrecisaSemeadura && D) {
+    salvarCardapio(false).catch(e => console.warn('Semeadura inicial:', e));
   }
 
   // Atualiza o indicador visual da nuvem
