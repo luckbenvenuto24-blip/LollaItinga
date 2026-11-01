@@ -1679,6 +1679,7 @@ async function salvarCardapio(notificar = true) {
 
   // 2. Salva na Nuvem Supabase Oficial (Persistência Real para Todos os Computadores e Celulares)
   let salvouNuvem = false;
+  let erroNuvemMsg = '';
   try {
     const resSupa = await fetch(`${SUPABASE_CONFIG.url}/rest/v1/${SUPABASE_CONFIG.table}`, {
       method: 'POST',
@@ -1696,8 +1697,13 @@ async function salvarCardapio(notificar = true) {
     });
     if (resSupa.ok) {
       salvouNuvem = true;
+    } else {
+      const errTxt = await resSupa.text();
+      erroNuvemMsg = `Status ${resSupa.status}: ${errTxt.slice(0, 80)}`;
+      console.error('Falha ao salvar no Supabase:', resSupa.status, errTxt);
     }
   } catch (errSupa) {
+    erroNuvemMsg = errSupa.message || 'Falha de conexão';
     console.warn('Erro ao sincronizar com Supabase:', errSupa);
   }
 
@@ -1715,11 +1721,25 @@ async function salvarCardapio(notificar = true) {
     } catch (err) {}
   }
 
+  // Atualiza badge de sincronização na barra de admin
+  const badgeNuvem = $('#status-sinc-nuvem');
+  if (badgeNuvem) {
+    if (salvouNuvem) {
+      badgeNuvem.textContent = '☁️ Sincronizado na Nuvem';
+      badgeNuvem.style.color = 'var(--verde)';
+      badgeNuvem.style.background = '#E8F8ED';
+    } else {
+      badgeNuvem.textContent = '⚠️ Salvo Apenas Localmente';
+      badgeNuvem.style.color = '#c00';
+      badgeNuvem.style.background = '#FDE8E8';
+    }
+  }
+
   if (notificar) {
     if (salvouNuvem) {
       toast('☁️ Cardápio e fotos salvos na nuvem com sucesso!');
     } else {
-      toast('✅ Alterações salvas com sucesso!');
+      toast(`⚠️ Salvo localmente. Erro na nuvem: ${erroNuvemMsg}`);
     }
   }
 
@@ -1729,6 +1749,11 @@ async function salvarCardapio(notificar = true) {
   window.scrollTo(0, savedScrollY);
   salvarEstadoNavegacao(savedScrollY);
 }
+
+window.forcarSincronizacaoNuvem = async function () {
+  toast('☁️ Enviando cardápio completo para a nuvem...');
+  await salvarCardapio(true);
+};
 
 /* ==========================================================
  * EXPORTAÇÃO & IMPORTAÇÃO DE BACKUP (SEGURANÇA TOTAL)
@@ -2287,7 +2312,7 @@ async function submitProduto(e) {
   }
 
   fecharModalProduto();
-  await salvarCardapio(false);
+  await salvarCardapio(true);
 }
 
 window.alternarOcultarProduto = async function (index) {
@@ -2296,7 +2321,7 @@ window.alternarOcultarProduto = async function (index) {
   if (!it) return;
   it.oculto = !it.oculto;
   toast(it.oculto ? `🙈 "${it.n}" ocultado para clientes (continua salvo).` : `👁️ "${it.n}" visível novamente para os clientes!`);
-  await salvarCardapio(false);
+  await salvarCardapio(true);
 };
 
 window.removerProduto = async function (index) {
@@ -2307,7 +2332,7 @@ window.removerProduto = async function (index) {
   if (confirm(`Deseja realmente remover o produto "${it.n}" do seu cardápio?`)) {
     D.itens.splice(index, 1);
     toast(`Produto removido.`);
-    await salvarCardapio(false);
+    await salvarCardapio(true);
   }
 };
 
@@ -3053,7 +3078,9 @@ async function init() {
     const resSupa = await fetch(`${SUPABASE_CONFIG.url}/rest/v1/${SUPABASE_CONFIG.table}?id=eq.principal&select=*`, {
       headers: {
         'apikey': SUPABASE_CONFIG.anonKey,
-        'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`
+        'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`,
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
       }
     });
     if (resSupa.ok) {
@@ -3061,6 +3088,10 @@ async function init() {
       if (rows && rows.length > 0 && rows[0].data && Array.isArray(rows[0].data.itens)) {
         D = rows[0].data;
         carregouNuvem = true;
+        // Mantém o cache local atualizado com o cardápio oficial da nuvem
+        try {
+          localStorage.setItem(STORAGE_KEY_DATA, JSON.stringify(D));
+        } catch (e) {}
       }
     }
   } catch (errSupa) {

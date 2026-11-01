@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Figtree:wght@400;600;700;800&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="stylesheet" href="/css/styles.css?v=2.2">
 </head>
 <body>
 
@@ -76,6 +76,7 @@
           <button class="btn-admin secundario" onclick="abrirModalBlog(-1)">📝 Novo Card no Blog</button>
           <button class="btn-admin secundario" onclick="abrirModalConfig()">⚙️ Dados da Loja</button>
           <button class="btn-admin secundario" onclick="abrirModalSenha()">🔑 Alterar Senha</button>
+          <button class="btn-admin secundario" onclick="forcarSincronizacaoNuvem()" style="border-color:var(--verde);color:var(--verde-esc);background:#E8F8ED;font-weight:800" title="Enviar cardápio e fotos para a nuvem para que apareçam em todos os celulares e computadores">☁️ Salvar na Nuvem</button>
           <button class="btn-admin secundario" onclick="exportarBackupCardapio()" title="Baixar arquivo de backup com todas as fotos e produtos salvos neste computador">📦 Baixar Backup</button>
           <button class="btn-admin secundario" onclick="$('#input-importar-backup').click()" title="Carregar arquivo JSON de backup de outro computador">📥 Importar Backup</button>
           <input type="file" id="input-importar-backup" accept=".json" style="display:none" onchange="importarBackupCardapio(event)">
@@ -1622,6 +1623,6 @@
   ]
 };
 </script>
-<script src="/js/app.js"></script>
+<script src="/js/app.js?v=2.2"></script>
 </body>
 </html>
