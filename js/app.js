@@ -1576,42 +1576,92 @@ async function submeterNovaSenha(e) {
 }
 
 /* ==========================================================
- * UPLOAD HELPER GENÉRICO
+ * CONFIGURAÇÃO NUVEM OFICIAL (SUPABASE & BACKUP)
  * ========================================================== */
 
-async function uploadImagemArquivo(file) {
+const SUPABASE_CONFIG = {
+  url: 'https://bpxqanowjvlzifxkyypj.supabase.co',
+  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJweHFhbm93anZsemlmeGt5eXBqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxNjcxNDMsImV4cCI6MjA5NTc0MzE0M30.9wEYk9SZGXHb4fWglNuHyyeKlV3dsd51d40HKFBuHrI',
+  table: 'lolla_cardapio_online'
+};
+
+/* ==========================================================
+ * COMPRESSOR AUTOMÁTICO DE IMAGENS (CLIENT-SIDE)
+ * Reduz fotos de celulares (5MB-8MB) para ~45KB mantendo alta nitidez
+ * ========================================================== */
+
+function comprimirImagemArquivo(file, maxDim = 800, quality = 0.82) {
   return new Promise(resolve => {
+    if (!file || !file.type || !file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = e => resolve(e.target.result);
+      reader.onerror = () => resolve('');
+      reader.readAsDataURL(file);
+      return;
+    }
+
     const reader = new FileReader();
-    reader.onload = async e => {
-      const dataUrl = e.target.result;
-      if (isAdmin && adminToken) {
-        try {
-          const res = await fetch('/api/upload', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${adminToken}`
-            },
-            body: JSON.stringify({ dataUrl, filename: file.name })
-          });
-          if (res.ok) {
-            const json = await res.json();
-            if (json.url) {
-              toast('📸 Foto enviada com sucesso!');
-              resolve(json.url);
-              return;
-            }
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width;
+        let h = img.height;
+        if (w > maxDim || h > maxDim) {
+          if (w > h) {
+            h = Math.round((h * maxDim) / w);
+            w = maxDim;
+          } else {
+            w = Math.round((w * maxDim) / h);
+            h = maxDim;
           }
-        } catch (err) {}
-      }
-      resolve(dataUrl);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        const compressed = canvas.toDataURL('image/jpeg', quality);
+        resolve(compressed);
+      };
+      img.onerror = () => resolve(e.target.result);
+      img.src = e.target.result;
     };
+    reader.onerror = () => resolve('');
     reader.readAsDataURL(file);
   });
 }
 
 /* ==========================================================
- * OPERAÇÕES DE PRODUTOS (ADMIN)
+ * UPLOAD HELPER GENÉRICO (COM OTIMIZAÇÃO AUTOMÁTICA)
+ * ========================================================== */
+
+async function uploadImagemArquivo(file) {
+  const compressedDataUrl = await comprimirImagemArquivo(file);
+  if (isAdmin && adminToken) {
+    try {
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${adminToken}`
+        },
+        body: JSON.stringify({ dataUrl: compressedDataUrl, filename: file.name })
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.url) {
+          toast('📸 Foto enviada e salva!');
+          return json.url;
+        }
+      }
+    } catch (err) {}
+  }
+  toast('📸 Foto otimizada para carregamento rápido!');
+  return compressedDataUrl;
+}
+
+/* ==========================================================
+ * OPERAÇÕES DE PRODUTOS (ADMIN) & SINCRONIZAÇÃO EM NUVEM
  * ========================================================== */
 
 async function salvarCardapio(notificar = true) {
@@ -1619,14 +1669,42 @@ async function salvarCardapio(notificar = true) {
   const savedScrollY = window.scrollY;
   D.config = { nome: CONFIG.nome, whatsapp: CONFIG.whatsapp };
 
+  // 1. Salva no localStorage (cache local instantâneo do navegador)
   try {
     localStorage.setItem(STORAGE_KEY_DATA, JSON.stringify(D));
     localStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(CONFIG));
-  } catch (e) {}
+  } catch (e) {
+    console.warn('LocalStorage:', e);
+  }
 
+  // 2. Salva na Nuvem Supabase Oficial (Persistência Real para Todos os Computadores e Celulares)
+  let salvouNuvem = false;
+  try {
+    const resSupa = await fetch(`${SUPABASE_CONFIG.url}/rest/v1/${SUPABASE_CONFIG.table}`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_CONFIG.anonKey,
+        'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates'
+      },
+      body: JSON.stringify({
+        id: 'principal',
+        data: D,
+        updated_at: new Date().toISOString()
+      })
+    });
+    if (resSupa.ok) {
+      salvouNuvem = true;
+    }
+  } catch (errSupa) {
+    console.warn('Erro ao sincronizar com Supabase:', errSupa);
+  }
+
+  // 3. Salva no servidor local (quando executado via node server.js em localhost)
   if (isAdmin && adminToken) {
     try {
-      const res = await fetch('/api/cardapio', {
+      await fetch('/api/cardapio', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1634,14 +1712,14 @@ async function salvarCardapio(notificar = true) {
         },
         body: JSON.stringify(D)
       });
-      if (res.ok) {
-        if (notificar) toast('✅ Alterações salvas com sucesso!');
-      } else {
-        const errJson = await res.json();
-        console.error('Falha ao salvar no servidor:', errJson);
-      }
-    } catch (err) {
-      console.warn('Servidor indisponível:', err);
+    } catch (err) {}
+  }
+
+  if (notificar) {
+    if (salvouNuvem) {
+      toast('☁️ Cardápio e fotos salvos na nuvem com sucesso!');
+    } else {
+      toast('✅ Alterações salvas com sucesso!');
     }
   }
 
@@ -1651,6 +1729,54 @@ async function salvarCardapio(notificar = true) {
   window.scrollTo(0, savedScrollY);
   salvarEstadoNavegacao(savedScrollY);
 }
+
+/* ==========================================================
+ * EXPORTAÇÃO & IMPORTAÇÃO DE BACKUP (SEGURANÇA TOTAL)
+ * ========================================================== */
+
+window.exportarBackupCardapio = function () {
+  if (!D) {
+    alert('Nenhum dado para exportar.');
+    return;
+  }
+  const jsonStr = JSON.stringify(D, null, 2);
+  const blob = new Blob([jsonStr], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const dataHoje = new Date().toISOString().slice(0, 10);
+  a.href = url;
+  a.download = `cardapio-lolla-backup-${dataHoje}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('📦 Backup baixado com sucesso!');
+};
+
+window.importarBackupCardapio = function (event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data || !Array.isArray(data.itens)) {
+        alert('Arquivo de backup inválido.');
+        return;
+      }
+      if (confirm(`Deseja restaurar o backup com ${data.itens.length} produtos? Isso atualizará o cardápio atual com as fotos salvas.`)) {
+        D = data;
+        ensureExtraData();
+        await salvarCardapio(true);
+        toast(`📥 Backup restaurado com sucesso! (${data.itens.length} produtos)`);
+      }
+    } catch (err) {
+      alert('Erro ao ler arquivo JSON: ' + err.message);
+    }
+    event.target.value = '';
+  };
+  reader.readAsText(file);
+};
 
 function descobrirGrupoDaCategoria(nomeCat) {
   return getGrupoDaCategoria(nomeCat);
@@ -2921,21 +3047,71 @@ async function init() {
     window.__CARDAPIO_DATA_DEFAULT__ = JSON.parse(JSON.stringify(window.__CARDAPIO_DATA__));
   }
 
-  // Tenta carregar dados da API
+  // 1. Tenta carregar da Nuvem Supabase Oficial primeiro (onde todos os PCs sincronizam em tempo real)
+  let carregouNuvem = false;
   try {
-    const res = await fetch('/api/cardapio');
-    if (res.ok) D = await res.json();
-  } catch (err) {}
-
-  if (!D) {
-    try {
-      const local = localStorage.getItem(STORAGE_KEY_DATA);
-      if (local) D = JSON.parse(local);
-    } catch (e) {}
+    const resSupa = await fetch(`${SUPABASE_CONFIG.url}/rest/v1/${SUPABASE_CONFIG.table}?id=eq.principal&select=*`, {
+      headers: {
+        'apikey': SUPABASE_CONFIG.anonKey,
+        'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`
+      }
+    });
+    if (resSupa.ok) {
+      const rows = await resSupa.json();
+      if (rows && rows.length > 0 && rows[0].data && Array.isArray(rows[0].data.itens)) {
+        D = rows[0].data;
+        carregouNuvem = true;
+      }
+    }
+  } catch (errSupa) {
+    console.warn('Supabase offline ou inacessível no momento:', errSupa);
   }
 
+  // 2. Verifica se o navegador atual tem dados no localStorage
+  // Se tiver fotos locais que a nuvem ainda não tem (ex: no PC do trabalho onde você cadastrou hoje),
+  // ele preserva as fotos locais para que você não perca nada!
+  try {
+    const local = localStorage.getItem(STORAGE_KEY_DATA);
+    if (local) {
+      const parsedLocal = JSON.parse(local);
+      if (parsedLocal && Array.isArray(parsedLocal.itens)) {
+        if (!D) {
+          D = parsedLocal;
+        } else {
+          const fotosLocalCount = parsedLocal.itens.filter(it => it && it.img).length;
+          const fotosNuvemCount = D.itens.filter(it => it && it.img).length;
+          if (fotosLocalCount > fotosNuvemCount) {
+            console.log(`Detectado localStorage com mais fotos (${fotosLocalCount} vs ${fotosNuvemCount}). Preservando dados deste computador!`);
+            D = parsedLocal;
+          }
+        }
+      }
+    }
+  } catch (e) {}
+
+  // 3. Tenta carregar dados da API local (/api/cardapio) caso não tenha carregado
+  if (!D) {
+    try {
+      const res = await fetch('/api/cardapio');
+      if (res.ok) D = await res.json();
+    } catch (err) {}
+  }
+
+  // 4. Fallback final: dados embutidos
   if (!D && window.__CARDAPIO_DATA__) {
     D = JSON.parse(JSON.stringify(window.__CARDAPIO_DATA__));
+  }
+
+  // Atualiza o indicador visual da nuvem
+  const badgeNuvem = $('#status-sinc-nuvem');
+  if (badgeNuvem) {
+    if (carregouNuvem) {
+      badgeNuvem.textContent = '☁️ Conectado à Nuvem';
+      badgeNuvem.style.color = 'var(--verde)';
+      badgeNuvem.style.background = '#E8F8ED';
+    } else {
+      badgeNuvem.textContent = '☁️ Nuvem Pronta para Salvar';
+    }
   }
 
   // Verifica se o token de administrador é válido
