@@ -247,7 +247,7 @@ h1,h2,h3{font-family:'Baloo 2',ui-rounded,'Segoe UI',system-ui,sans-serif;
 
 .destaque-momento-foto{
   position:relative;width:42%;aspect-ratio:1/1;border-radius:18px;
-  background:#FFF5EE;overflow:hidden;display:grid;place-items:center;flex-shrink:0;
+  background:#ffffff !important;overflow:hidden;display:grid;place-items:center;flex-shrink:0;
 }
 .destaque-momento-foto img{width:100%;height:100%;object-fit:cover;display:block}
 .destaque-momento-foto .off{
@@ -399,7 +399,7 @@ h1,h2,h3{font-family:'Baloo 2',ui-rounded,'Segoe UI',system-ui,sans-serif;
 
 .foto{
   width:100%;aspect-ratio:1/1;margin:0 0 12px;position:relative;
-  overflow:hidden;border-radius:18px;background:#FFF6EE;
+  overflow:hidden;border-radius:18px;background:#ffffff !important;
   display:grid;place-items:center;
 }
 .foto picture,.foto img{
@@ -776,7 +776,7 @@ body.admin-autenticado .secao-admin-bar{display:flex}
 
 .foto-seletor{display:flex;align-items:center;gap:14px;margin-top:6px}
 .foto-preview{width:86px;height:86px;border-radius:14px;border:2px dashed var(--borda);
-  background:var(--creme);overflow:hidden;display:grid;place-items:center;flex-shrink:0}
+  background:#ffffff !important;overflow:hidden;display:grid;place-items:center;flex-shrink:0}
 .foto-preview img{width:100%;height:100%;object-fit:cover}
 
 /* Painel de Ajustes e Transformação de Fotos de Produtos */
@@ -834,7 +834,7 @@ body.admin-autenticado .secao-admin-bar{display:flex}
   height: 160px;
   border-radius: 20px;
   border: 2px solid var(--borda);
-  background: #FFF6EE;
+  background: #ffffff !important;
   box-shadow: 0 4px 14px rgba(0,0,0,.08);
   cursor: grab;
   position: relative;
@@ -1149,7 +1149,7 @@ body.admin-autenticado .secao-admin-bar{display:flex}
   pointer-events:none;
   border-radius:18px;
   overflow:hidden;
-  background:#FFF6EE;
+  background:#ffffff !important;
   box-shadow:0 16px 36px rgba(133,6,15,0.32), 0 4px 14px rgba(0,0,0,0.16);
   border:2px solid rgba(255,255,255,0.95);
   display:flex;
@@ -1349,7 +1349,7 @@ body.admin-autenticado .secao-admin-bar{display:flex}
   border-color:rgba(133,6,15,0.2);box-shadow:0 6px 18px rgba(60,20,20,0.08);
 }
 .carrinho-item-foto{
-  width:62px;height:62px;border-radius:14px;background:#FFF4ED;
+  width:62px;height:62px;border-radius:14px;background:#ffffff !important;
   display:grid;place-items:center;overflow:hidden;flex-shrink:0;
   border:1px solid rgba(133,6,15,0.08);
 }
