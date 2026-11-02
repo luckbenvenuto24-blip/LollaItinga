@@ -1480,3 +1480,549 @@ body.admin-autenticado .secao-admin-bar{display:flex}
   .drawer-carrinho-conteudo{max-width:100%}
   .carrinho-total-linha strong{font-size:20px}
 }
+
+/* ==========================================================
+ * SISTEMA: MONTE O SEU AÇAÍ & DESTAQUES PERSONALIZADOS
+ * ========================================================== */
+
+/* Banner Chamativo na Categoria Açaí */
+.banner-montar-acai {
+  grid-column: 1 / -1;
+  background: linear-gradient(135deg, #4A0E4E 0%, #310834 60%, #1A021C 100%);
+  color: #fff;
+  border-radius: 24px;
+  padding: 24px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 18px;
+  box-shadow: 0 12px 32px rgba(74, 14, 78, 0.28);
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+.banner-montar-acai::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -20%;
+  width: 320px;
+  height: 320px;
+  background: radial-gradient(circle, rgba(235, 77, 137, 0.25) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+.banner-montar-acai-info {
+  flex: 1;
+  z-index: 1;
+}
+.banner-montar-acai-tag {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.2);
+  color: #FFE6F0;
+  font-family: 'Baloo 2', sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 999px;
+  margin-bottom: 6px;
+  letter-spacing: .03em;
+}
+.banner-montar-acai h3 {
+  font-size: 24px;
+  color: #fff;
+  margin: 0 0 6px;
+  line-height: 1.15;
+}
+.banner-montar-acai p {
+  font-size: 13.5px;
+  color: rgba(255, 255, 255, 0.88);
+  margin: 0;
+  line-height: 1.4;
+  max-width: 520px;
+}
+.btn-abrir-montar-acai {
+  z-index: 1;
+  background: #00A859;
+  color: #fff;
+  font-family: 'Baloo 2', sans-serif;
+  font-size: 15px;
+  font-weight: 800;
+  padding: 14px 24px;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(0, 168, 89, 0.38);
+  transition: all .2s cubic-bezier(.16, 1, .3, 1);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+.btn-abrir-montar-acai:hover {
+  background: #008A45;
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 8px 24px rgba(0, 168, 89, 0.48);
+}
+
+@media (max-width: 680px) {
+  .banner-montar-acai {
+    flex-direction: column;
+    text-align: center;
+    padding: 20px 16px;
+  }
+  .banner-montar-acai p {
+    margin-bottom: 12px;
+  }
+  .btn-abrir-montar-acai {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Modal de Montagem de Açaí */
+.modal-janela.modal-acai-dialog {
+  max-width: 640px;
+}
+.acai-passo-secao {
+  margin-bottom: 20px;
+  background: #FFFBF8;
+  border: 1.5px solid #F5EAE0;
+  border-radius: 18px;
+  padding: 16px 18px;
+}
+.acai-passo-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.acai-passo-titulo-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.acai-passo-numero {
+  width: 26px;
+  height: 26px;
+  background: #85060F;
+  color: #fff;
+  border-radius: 50%;
+  font-family: 'Baloo 2', sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+}
+.acai-passo-titulo {
+  font-family: 'Baloo 2', sans-serif;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--tinta);
+  margin: 0;
+}
+.acai-passo-obrigatorio {
+  font-size: 11px;
+  font-weight: 800;
+  color: #85060F;
+  background: #FFE8E5;
+  padding: 2px 8px;
+  border-radius: 999px;
+  text-transform: uppercase;
+}
+.acai-passo-opcional {
+  font-size: 11px;
+  font-weight: 800;
+  color: #008A45;
+  background: #E8F8ED;
+  padding: 2px 8px;
+  border-radius: 999px;
+  text-transform: uppercase;
+}
+.acai-passo-dica {
+  font-size: 12px;
+  color: var(--tinta-fraca);
+  margin: 0 0 12px;
+  line-height: 1.35;
+}
+
+/* Tamanhos */
+.acai-tamanhos-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.acai-tamanho-card {
+  border: 2px solid var(--borda);
+  background: #fff;
+  border-radius: 16px;
+  padding: 14px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  cursor: pointer;
+  transition: all .2s cubic-bezier(.16, 1, .3, 1);
+  position: relative;
+}
+.acai-tamanho-card:hover {
+  border-color: #85060F;
+  transform: translateY(-2px);
+}
+.acai-tamanho-card.selecionado {
+  border-color: #85060F;
+  background: #FFF4F0;
+  box-shadow: 0 4px 16px rgba(133, 6, 15, 0.15);
+}
+.acai-tamanho-icone {
+  font-size: 32px;
+  margin-bottom: 6px;
+}
+.acai-tamanho-nome {
+  font-family: 'Baloo 2', sans-serif;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--tinta);
+}
+.acai-tamanho-desc {
+  font-size: 11px;
+  color: var(--tinta-fraca);
+  margin-top: 2px;
+}
+.acai-check-marcador {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--borda);
+  background: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  color: transparent;
+  transition: all .15s;
+}
+.acai-tamanho-card.selecionado .acai-check-marcador,
+.acai-base-card.selecionado .acai-check-marcador,
+.acai-extra-card.selecionado .acai-check-marcador {
+  border-color: #85060F;
+  background: #85060F;
+  color: #fff;
+}
+
+/* Bases */
+.acai-bases-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+.acai-base-card {
+  border: 2px solid var(--borda);
+  background: #fff;
+  border-radius: 16px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  transition: all .2s cubic-bezier(.16, 1, .3, 1);
+  position: relative;
+}
+.acai-base-card:hover {
+  border-color: #85060F;
+  transform: translateY(-2px);
+}
+.acai-base-card.selecionado {
+  border-color: #85060F;
+  background: #FFF4F0;
+  box-shadow: 0 4px 16px rgba(133, 6, 15, 0.15);
+}
+.acai-base-foto {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  background: #ffffff;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(133,6,15,0.08);
+}
+.acai-base-foto img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.acai-base-info {
+  flex: 1;
+}
+.acai-base-nome {
+  font-family: 'Baloo 2', sans-serif;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--tinta);
+  margin: 0 0 2px;
+}
+.acai-base-desc {
+  font-size: 11.5px;
+  color: var(--tinta-fraca);
+  margin: 0;
+}
+.acai-base-preco {
+  font-family: 'Baloo 2', sans-serif;
+  font-size: 16px;
+  font-weight: 800;
+  color: #85060F;
+  margin-right: 28px;
+}
+
+/* Acompanhamentos e Cremes Grid */
+.acai-extras-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+@media (min-width: 520px) {
+  .acai-extras-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+.acai-extra-card {
+  border: 2px solid var(--borda);
+  background: #fff;
+  border-radius: 14px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: all .18s cubic-bezier(.16, 1, .3, 1);
+  position: relative;
+  user-select: none;
+}
+.acai-extra-card:hover {
+  border-color: #85060F;
+  transform: translateY(-1px);
+}
+.acai-extra-card.selecionado {
+  border-color: #00A859;
+  background: #F0FBF4;
+  box-shadow: 0 4px 12px rgba(0, 168, 89, 0.15);
+}
+.acai-extra-card.selecionado .acai-check-marcador {
+  border-color: #00A859;
+  background: #00A859;
+  color: #fff;
+}
+.acai-extra-icone {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: #ffffff;
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  flex-shrink: 0;
+  overflow: hidden;
+  border: 1px solid rgba(0,0,0,.06);
+}
+.acai-extra-icone img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.acai-extra-info {
+  flex: 1;
+  min-width: 0;
+}
+.acai-extra-nome {
+  font-family: 'Baloo 2', sans-serif;
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--tinta);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.acai-extra-preco {
+  font-size: 12px;
+  font-weight: 700;
+  color: #008A45;
+}
+
+/* Rodapé de Resumo Fixo no Modal */
+.acai-rodape-resumo {
+  background: #fff;
+  border-top: 1.5px solid var(--borda);
+  padding: 14px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  box-shadow: 0 -8px 24px rgba(0,0,0,0.06);
+  border-radius: 0 0 24px 24px;
+}
+.acai-resumo-texto {
+  font-size: 12.5px;
+  color: var(--tinta-fraca);
+  line-height: 1.35;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.acai-resumo-total-wrap {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.acai-resumo-total-label {
+  font-family: 'Baloo 2', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--tinta);
+}
+.acai-resumo-total-valor {
+  font-family: 'Baloo 2', sans-serif;
+  font-size: 24px;
+  font-weight: 800;
+  color: #85060F;
+}
+.acai-acoes-botoes {
+  display: flex;
+  gap: 10px;
+}
+.btn-acai-add-carrinho {
+  flex: 1.2;
+  min-height: 46px;
+  background: #85060F;
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  font-family: 'Baloo 2', sans-serif;
+  font-size: 14.5px;
+  font-weight: 800;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 4px 14px rgba(133, 6, 15, 0.3);
+  transition: all .2s;
+}
+.btn-acai-add-carrinho:hover {
+  background: #63030A;
+  transform: translateY(-1px);
+}
+.btn-acai-zap {
+  flex: 1;
+  min-height: 46px;
+  background: #008A45;
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  font-family: 'Baloo 2', sans-serif;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  text-decoration: none;
+  box-shadow: 0 4px 14px rgba(0, 138, 69, 0.3);
+  transition: all .2s;
+}
+.btn-acai-zap:hover {
+  background: #007038;
+  transform: translateY(-1px);
+}
+
+@media (max-width: 480px) {
+  .acai-acoes-botoes {
+    flex-direction: column;
+  }
+  .acai-extras-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Botão Estrela de Destaque no Card */
+.btn-card-admin.destaque-toggle {
+  background: #FFF8E7;
+  color: #D48806;
+  border: 1px solid rgba(212, 136, 6, 0.3);
+}
+.btn-card-admin.destaque-toggle:hover {
+  background: #FFE58F;
+  color: #874D00;
+}
+.btn-card-admin.destaque-toggle.ativo {
+  background: #FAAD14;
+  color: #fff;
+  border-color: #D48806;
+}
+.badge-destaque-produto {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: linear-gradient(135deg, #FAAD14 0%, #D48806 100%);
+  color: #fff;
+  font-family: 'Baloo 2', sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 999px;
+  box-shadow: 0 3px 8px rgba(0,0,0,.22);
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Abas do Admin de Açaí */
+.acai-admin-abas {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  border-bottom: 2px solid var(--borda);
+  padding-bottom: 8px;
+}
+.acai-admin-aba-btn {
+  background: transparent;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-family: 'Baloo 2', sans-serif;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--tinta-fraca);
+  cursor: pointer;
+  transition: all .16s;
+}
+.acai-admin-aba-btn.ativo {
+  background: #85060F;
+  color: #fff;
+}
+.acai-admin-item-card {
+  background: #FFFBF8;
+  border: 1.5px solid var(--borda);
+  border-radius: 14px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+

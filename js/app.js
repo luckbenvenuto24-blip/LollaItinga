@@ -49,6 +49,58 @@ const DEFAULT_CASQUINHAS = {
   img: 'assets/marca/seis-casquinhas.png'
 };
 
+const DEFAULT_ACAI_CONFIG = {
+  ativo: true,
+  titulo: 'Monte o Seu Açaí',
+  subtitulo: 'Escolha o tamanho (300ml ou 500ml), o tipo de açaí e adicione quantos acompanhamentos e cremes desejar!',
+  tamanhos: [
+    { id: '300ml', nome: 'Copo 300ml', ml: 300, icone: '🥤', desc: 'Perfeito para refrescar o seu dia' },
+    { id: '500ml', nome: 'Copo 500ml', ml: 500, icone: '🍧', desc: 'O tamanho mais pedido da casa!' }
+  ],
+  bases: [
+    {
+      id: 'tradicional',
+      nome: 'Açaí Tradicional',
+      desc: 'Puro açaí batido com textura aveludada e refrescante.',
+      img: '/assets/marca/cat-acai-monte.webp',
+      precos: { '300ml': 15.00, '500ml': 18.00 },
+      ativo: true
+    },
+    {
+      id: 'nutella',
+      nome: 'Açaí com Nutella',
+      desc: 'Açaí batido cremoso combinado com a legítima e deliciosa Nutella.',
+      img: '/assets/marca/cat-acai-monte.webp',
+      precos: { '300ml': 17.00, '500ml': 20.00 },
+      ativo: true
+    },
+    {
+      id: 'leitinho',
+      nome: 'Açaí com Leitinho',
+      desc: 'Açaí batido especial com creme sabor leite em pó suave.',
+      img: '/assets/marca/cat-acai-monte.webp',
+      precos: { '300ml': 17.00, '500ml': 20.00 },
+      ativo: true
+    }
+  ],
+  acompanhamentos: [
+    { id: 'morango', nome: 'Morango', preco: 4.00, img: '', icone: '🍓', ativo: true },
+    { id: 'uva', nome: 'Uva', preco: 4.00, img: '', icone: '🍇', ativo: true },
+    { id: 'banana', nome: 'Banana', preco: 4.00, img: '', icone: '🍌', ativo: true },
+    { id: 'ovomaltine', nome: 'Ovomaltine', preco: 4.00, img: '', icone: '🍫', ativo: true },
+    { id: 'confeti', nome: 'Confeti', preco: 4.00, img: '', icone: '🍬', ativo: true },
+    { id: 'leite-po', nome: 'Leite em Pó', preco: 4.00, img: '', icone: '🥛', ativo: true },
+    { id: 'leite-cond', nome: 'Leite Condensado', preco: 4.00, img: '', icone: '🍯', ativo: true },
+    { id: 'nutella-extra', nome: 'Nutella Extra', preco: 8.00, img: '', icone: '🌰', ativo: true }
+  ],
+  cremes: [
+    { id: 'creme-cookies', nome: 'Creme de Cookies', preco: 5.00, img: '', icone: '🍪', ativo: true },
+    { id: 'creme-trufado', nome: 'Creme Trufado', preco: 5.00, img: '', icone: '🍫', ativo: true },
+    { id: 'creme-leitinho', nome: 'Creme Leitinho', preco: 5.00, img: '', icone: '🥛', ativo: true },
+    { id: 'creme-pacoca', nome: 'Creme de Paçoca', preco: 5.00, img: '', icone: '🥜', ativo: true }
+  ]
+};
+
 const DEFAULT_BLOG = [
   {
     data: 'Destaque da Loja · Sorvetes & Açaí',
@@ -244,6 +296,12 @@ function ensureExtraData() {
   }
   if (typeof D.blogAtivo !== 'boolean') {
     D.blogAtivo = true;
+  }
+  if (!D.acaiCustomizavel || typeof D.acaiCustomizavel !== 'object') {
+    D.acaiCustomizavel = JSON.parse(JSON.stringify(DEFAULT_ACAI_CONFIG));
+  }
+  if (!Array.isArray(D.destaquesMomento)) {
+    D.destaquesMomento = [0, 1, 2];
   }
 }
 
@@ -537,12 +595,16 @@ function card(it, i, itemIndex) {
   const imgHtml = resolveImageTag(it, i);
   const oculto = Boolean(it.oculto);
   const { title, size, desc } = formatProduct(it);
+  const isAcai = Boolean(it.isAcaiCustom || it.c === 'Açaí Monte o Seu!!!');
+  const isDestaque = Array.isArray(D.destaquesMomento) && (D.destaquesMomento.includes(itemIndex) || D.destaquesMomento.includes(it.n));
 
   return `<article class="card ${oculto ? 'card-oculto' : ''}" data-idx="${itemIndex}" style="animation-delay:${Math.min(i, 11) * 28}ms">
     <div class="foto" style="${getImageTransformStyle(it)}">
       ${imgHtml}
       ${off ? `<span class="off">-${off}%</span>` : ''}
+      ${isDestaque ? '<span class="badge-destaque-produto">⭐ Destaque</span>' : ''}
       <div class="card-admin-actions">
+        <button type="button" class="btn-card-admin destaque-toggle ${isDestaque ? 'ativo' : ''}" title="${isDestaque ? 'Remover dos destaques da semana' : 'Colocar nos destaques da semana'}" onclick="alternarDestaqueProduto(${itemIndex})">${isDestaque ? '⭐' : '☆'}</button>
         <button type="button" class="btn-card-admin ocultar" title="${oculto ? 'Tornar visível para clientes' : 'Ocultar produto (manter salvo)'}" onclick="alternarOcultarProduto(${itemIndex})">${oculto ? EYE_OFF_ICON : EYE_ICON}</button>
         <button type="button" class="btn-card-admin editar" title="Editar produto" onclick="abrirModalEditar(${itemIndex})">${EDIT_ICON}</button>
         <button type="button" class="btn-card-admin excluir" title="Excluir produto" onclick="removerProduto(${itemIndex})">${TRASH_ICON}</button>
@@ -555,6 +617,7 @@ function card(it, i, itemIndex) {
       <p class="desc">${esc(desc || 'Sabor artesanal preparado com ingredientes selecionados.')}</p>
       
       <div class="card-admin-botoes-texto">
+        <button type="button" class="btn-card-txt ${isDestaque ? 'destacado' : ''}" onclick="alternarDestaqueProduto(${itemIndex})" title="Destacar este produto no topo do site">${isDestaque ? '⭐ No Destaque' : '☆ Destacar'}</button>
         <button type="button" class="btn-card-txt editar" onclick="abrirModalEditar(${itemIndex})">✏️ Editar</button>
         <button type="button" class="btn-card-txt duplicar" onclick="duplicarProduto(${itemIndex})" title="Criar cópia deste produto nesta categoria">📋 Duplicar</button>
         <button type="button" class="btn-card-txt ocultar" onclick="alternarOcultarProduto(${itemIndex})">${oculto ? '👁️ Mostrar' : '🙈 Ocultar'}</button>
@@ -563,17 +626,25 @@ function card(it, i, itemIndex) {
 
       <div class="rodape-card">
         <div class="precos">
-          <span class="preco-atual"><small>R$</small> ${brl(p)}</span>
+          <span class="preco-atual"><small>${isAcai ? 'A partir de ' : ''}R$</small> ${brl(p)}</span>
           ${off ? `<span class="preco-antigo">R$ ${brl(po)}</span>` : ''}
         </div>
         <div class="card-acoes-dupla">
-          <a class="btn-pedir-zap" href="${link(it)}" target="_blank" rel="noopener"
-             aria-label="Pedir ${esc(it.n)} pelo WhatsApp">
-             ${ZAP_ICON} Pedir no WhatsApp
-          </a>
-          <button type="button" class="btn-pedir-add" onclick="adicionarAoPedido(${itemIndex}, event)" title="Adicionar ao pedido">
-            🛒 Adicionar ao pedido
-          </button>
+          ${isAcai ? `
+            <button type="button" class="btn-pedir-zap" onclick="abrirModalMontarAcai('${it.baseId || 'tradicional'}')" style="background:#4A0E4E;box-shadow:0 4px 12px rgba(74,14,78,.35)">
+              🍧 Personalizar e Pedir
+            </button>
+            <button type="button" class="btn-pedir-add" onclick="abrirModalMontarAcai('${it.baseId || 'tradicional'}')">
+              🛒 Montar Açaí
+            </button>
+          ` : `
+            <a class="btn-pedir-zap" href="${link(it)}" target="_blank" rel="noopener" aria-label="Pedir ${esc(it.n)} pelo WhatsApp">
+              ${ZAP_ICON} Pedir no WhatsApp
+            </a>
+            <button type="button" class="btn-pedir-add" onclick="adicionarAoPedido(${itemIndex}, event)" title="Adicionar ao pedido">
+              🛒 Adicionar ao pedido
+            </button>
+          `}
         </div>
       </div>
     </div>
@@ -584,13 +655,24 @@ function renderDestaquesMomento() {
   const el = $('#grade-destaques-momento');
   if (!el || !D || !D.itens) return;
 
-  // Busca 3 produtos de destaque (preferência Açaí Monte o Seu ou itens em oferta)
-  let destaques = D.itens.filter(it => it.c === 'Açaí Monte o Seu!!!').slice(0, 3);
-  if (destaques.length < 3) {
+  let destaques = [];
+  
+  // 1. Busca produtos selecionados pelo administrador
+  if (Array.isArray(D.destaquesMomento) && D.destaquesMomento.length > 0) {
+    destaques = D.destaquesMomento.map(idOrIndex => {
+      if (typeof idOrIndex === 'number' && D.itens[idOrIndex]) return D.itens[idOrIndex];
+      return D.itens.find(it => it && (it.id === idOrIndex || it.n === idOrIndex));
+    }).filter(Boolean);
+  }
+
+  // 2. Fallback inteligente: se nenhum configurado, pega com desconto ou primeiros da lista
+  if (!destaques.length) {
     const comOff = D.itens.filter(it => it.po > it.p);
     destaques = comOff.slice(0, 3);
   }
-  if (!destaques.length) destaques = D.itens.slice(0, 3);
+  if (!destaques.length) {
+    destaques = D.itens.slice(0, 3);
+  }
 
   el.innerHTML = destaques.map((it, idx) => {
     const itemIndex = D.itens.indexOf(it);
@@ -599,28 +681,39 @@ function renderDestaquesMomento() {
     const off = po > p ? Math.round((1 - p / po) * 100) : 0;
     const { title, size, desc } = formatProduct(it);
     const imgHtml = resolveImageTag(it, idx);
+    const isAcai = Boolean(it.isAcaiCustom || it.c === 'Açaí Monte o Seu!!!');
 
     return `
       <div class="destaque-momento-card">
         <div class="destaque-momento-foto" style="${getImageTransformStyle(it)}">
           ${imgHtml}
           ${off ? `<span class="off">-${off}%</span>` : ''}
+          <span class="badge-destaque-produto">⭐ Destaque</span>
         </div>
         <div class="destaque-momento-info">
           <h3 class="destaque-momento-nome">${esc(title)}</h3>
           ${size ? `<span class="destaque-momento-tamanho">${esc(size)}</span>` : ''}
           <p class="destaque-momento-desc">${esc(desc)}</p>
           <div class="destaque-momento-precos">
-            <span class="preco-atual"><small>R$</small> ${brl(p)}</span>
+            <span class="preco-atual"><small>${isAcai ? 'A partir de ' : ''}R$</small> ${brl(p)}</span>
             ${off ? `<span class="preco-antigo">R$ ${brl(po)}</span>` : ''}
           </div>
           <div class="destaque-momento-botoes">
-            <a class="btn-pedir-zap" href="${link(it)}" target="_blank" rel="noopener">
-              ${ZAP_ICON} Pedir no WhatsApp
-            </a>
-            <button type="button" class="btn-pedir-add" onclick="adicionarAoPedido(${itemIndex}, event)">
-              🛒 Adicionar ao pedido
-            </button>
+            ${isAcai ? `
+              <button type="button" class="btn-pedir-zap" onclick="abrirModalMontarAcai('${it.baseId || 'tradicional'}')" style="background:#4A0E4E">
+                🍧 Personalizar e Pedir
+              </button>
+              <button type="button" class="btn-pedir-add" onclick="abrirModalMontarAcai('${it.baseId || 'tradicional'}')">
+                🛒 Montar Açaí
+              </button>
+            ` : `
+              <a class="btn-pedir-zap" href="${link(it)}" target="_blank" rel="noopener">
+                ${ZAP_ICON} Pedir no WhatsApp
+              </a>
+              <button type="button" class="btn-pedir-add" onclick="adicionarAoPedido(${itemIndex}, event)">
+                🛒 Adicionar ao pedido
+              </button>
+            `}
           </div>
         </div>
       </div>
@@ -1311,6 +1404,20 @@ function render() {
          </button>`
       : '';
 
+    const isAcaiCat = c === 'Açaí Monte o Seu!!!' || /monte.*açaí|monte.*acai/i.test(c);
+    const bannerAcaiHtml = isAcaiCat ? `
+      <div class="banner-montar-acai">
+        <div class="banner-montar-acai-info">
+          <span class="banner-montar-acai-tag">✨ Monte do Seu Jeito</span>
+          <h3>Monte o Seu Açaí Favorito!</h3>
+          <p>Escolha o copo de 300ml ou 500ml, a base favorita (Tradicional, Nutella ou Leitinho) e adicione quantos acompanhamentos e cremes quiser!</p>
+        </div>
+        <button type="button" class="btn-abrir-montar-acai" onclick="abrirModalMontarAcai()">
+          🍧 Montar Açaí Agora
+        </button>
+      </div>
+    ` : '';
+
     html += `<section class="bloco-categoria">
                <div class="secao">
                  <div class="secao-titulo-wrap">
@@ -1319,6 +1426,11 @@ function render() {
                  </div>
                  <span class="qtd">${grupoItens.length}</span>
                  <div class="secao-admin-bar">
+                   ${isAcaiCat ? `
+                     <button type="button" class="btn-secao-admin" onclick="abrirModalAdminAcai()" style="background:#FFF0F5;border-color:#85060F;color:#85060F;font-weight:800">
+                       🍧 Opções do Açaí (Preços & Fotos)
+                     </button>
+                   ` : ''}
                    ${oculta ? '<span class="aviso-oculto-admin">🙈 Oculta para Clientes (Salva)</span>' : ''}
                    <button type="button" class="btn-secao-admin adicionar" onclick="abrirModalNovoProdutoPorCategoria(${catIdx})">
                      ➕ Adicionar Produto Aqui
@@ -1334,7 +1446,11 @@ function render() {
                    </button>
                  </div>
                </div>
-               <div class="grade ${oculta ? 'grade-oculta' : ''}">${grupoItens.map(({ it, idx }) => card(it, i++, idx)).join('')}${cardAddHtml}</div>
+               <div class="grade ${oculta ? 'grade-oculta' : ''}">
+                 ${bannerAcaiHtml}
+                 ${grupoItens.map(({ it, idx }) => card(it, i++, idx)).join('')}
+                 ${cardAddHtml}
+               </div>
              </section>`;
   }
   let buscaAvisoHtml = '';
@@ -2609,6 +2725,629 @@ window.alternarVisibilidadeDestaque = async function () {
   D.destaque.ativo = !D.destaque.ativo;
   toast(D.destaque.ativo ? '👁️ Card de Destaque visível para os clientes!' : '🙈 Card de Destaque ocultado para os clientes (continua salvo)!');
   await salvarCardapio(false);
+};
+
+/* ==========================================================
+ * SISTEMA: MONTE O SEU AÇAÍ (CLIENTE & CARRINHO)
+ * ========================================================== */
+
+let acaiModalState = {
+  tamanho: '500ml',
+  baseId: 'tradicional',
+  acompanhamentos: new Set(),
+  cremes: new Set()
+};
+
+window.abrirModalMontarAcai = function (baseIdPre = 'tradicional', tamPre = '500ml') {
+  ensureExtraData();
+  const cfg = D.acaiCustomizavel || DEFAULT_ACAI_CONFIG;
+  
+  acaiModalState = {
+    tamanho: (cfg.tamanhos && cfg.tamanhos.some(t => t.id === tamPre)) ? tamPre : (cfg.tamanhos && cfg.tamanhos[1] ? cfg.tamanhos[1].id : '500ml'),
+    baseId: (cfg.bases && cfg.bases.some(b => b.id === baseIdPre)) ? baseIdPre : (cfg.bases && cfg.bases[0] ? cfg.bases[0].id : 'tradicional'),
+    acompanhamentos: new Set(),
+    cremes: new Set()
+  };
+
+  renderModalMontarAcaiTamanhos();
+  renderModalMontarAcaiBases();
+  renderModalMontarAcaiAcomp();
+  renderModalMontarAcaiCremes();
+  atualizarResumoAcai();
+
+  const modal = $('#modal-montar-acai');
+  if (modal) modal.classList.add('aberto');
+};
+
+window.fecharModalMontarAcai = function () {
+  const modal = $('#modal-montar-acai');
+  if (modal) modal.classList.remove('aberto');
+};
+
+function renderModalMontarAcaiTamanhos() {
+  const el = $('#acai-container-tamanhos');
+  if (!el) return;
+  const cfg = D.acaiCustomizavel || DEFAULT_ACAI_CONFIG;
+  const tamanhos = cfg.tamanhos || [];
+
+  el.innerHTML = tamanhos.map(t => {
+    const sel = acaiModalState.tamanho === t.id;
+    return `
+      <div class="acai-tamanho-card ${sel ? 'selecionado' : ''}" onclick="selecionarTamanhoAcai('${esc(t.id)}')">
+        <span class="acai-check-marcador">✓</span>
+        <span class="acai-tamanho-icone">${t.icone || '🍧'}</span>
+        <strong class="acai-tamanho-nome">${esc(t.nome)}</strong>
+        <span class="acai-tamanho-desc">${esc(t.desc || '')}</span>
+      </div>
+    `;
+  }).join('');
+}
+
+window.selecionarTamanhoAcai = function (tamId) {
+  acaiModalState.tamanho = tamId;
+  renderModalMontarAcaiTamanhos();
+  renderModalMontarAcaiBases();
+  atualizarResumoAcai();
+};
+
+function renderModalMontarAcaiBases() {
+  const el = $('#acai-container-bases');
+  if (!el) return;
+  const cfg = D.acaiCustomizavel || DEFAULT_ACAI_CONFIG;
+  const bases = (cfg.bases || []).filter(b => b.ativo !== false);
+  const tamAtual = acaiModalState.tamanho || '500ml';
+
+  el.innerHTML = bases.map(b => {
+    const sel = acaiModalState.baseId === b.id;
+    const preco = (b.precos && b.precos[tamAtual] !== undefined) ? b.precos[tamAtual] : 18.00;
+    const imgSrc = b.img || '/assets/marca/cat-acai-monte.webp';
+    return `
+      <div class="acai-base-card ${sel ? 'selecionado' : ''}" onclick="selecionarBaseAcai('${esc(b.id)}')">
+        <span class="acai-check-marcador">✓</span>
+        <div class="acai-base-foto">
+          <img src="${esc(imgSrc)}" alt="${esc(b.nome)}">
+        </div>
+        <div class="acai-base-info">
+          <h4 class="acai-base-nome">${esc(b.nome)}</h4>
+          <p class="acai-base-desc">${esc(b.desc || '')}</p>
+        </div>
+        <span class="acai-base-preco">R$ ${brl(preco)}</span>
+      </div>
+    `;
+  }).join('');
+}
+
+window.selecionarBaseAcai = function (baseId) {
+  acaiModalState.baseId = baseId;
+  renderModalMontarAcaiBases();
+  atualizarResumoAcai();
+};
+
+function renderModalMontarAcaiAcomp() {
+  const el = $('#acai-container-acompanhamentos');
+  if (!el) return;
+  const cfg = D.acaiCustomizavel || DEFAULT_ACAI_CONFIG;
+  const acomp = (cfg.acompanhamentos || []).filter(a => a.ativo !== false);
+
+  el.innerHTML = acomp.map(a => {
+    const sel = acaiModalState.acompanhamentos.has(a.id);
+    const iconeHtml = a.img ? `<img src="${esc(a.img)}" alt="${esc(a.nome)}">` : `<span>${a.icone || '🍓'}</span>`;
+    return `
+      <div class="acai-extra-card ${sel ? 'selecionado' : ''}" onclick="alternarAcompanhamentoAcai('${esc(a.id)}')">
+        <span class="acai-check-marcador">✓</span>
+        <div class="acai-extra-icone">${iconeHtml}</div>
+        <div class="acai-extra-info">
+          <strong class="acai-extra-nome">${esc(a.nome)}</strong>
+          <span class="acai-extra-preco">+ R$ ${brl(a.preco || 4)}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+window.alternarAcompanhamentoAcai = function (acompId) {
+  if (acaiModalState.acompanhamentos.has(acompId)) {
+    acaiModalState.acompanhamentos.delete(acompId);
+  } else {
+    acaiModalState.acompanhamentos.add(acompId);
+  }
+  renderModalMontarAcaiAcomp();
+  atualizarResumoAcai();
+};
+
+function renderModalMontarAcaiCremes() {
+  const el = $('#acai-container-cremes');
+  if (!el) return;
+  const cfg = D.acaiCustomizavel || DEFAULT_ACAI_CONFIG;
+  const cremes = (cfg.cremes || []).filter(c => c.ativo !== false);
+
+  el.innerHTML = cremes.map(c => {
+    const sel = acaiModalState.cremes.has(c.id);
+    const iconeHtml = c.img ? `<img src="${esc(c.img)}" alt="${esc(c.nome)}">` : `<span>${c.icone || '🍪'}</span>`;
+    return `
+      <div class="acai-extra-card ${sel ? 'selecionado' : ''}" onclick="alternarCremeAcai('${esc(c.id)}')">
+        <span class="acai-check-marcador">✓</span>
+        <div class="acai-extra-icone">${iconeHtml}</div>
+        <div class="acai-extra-info">
+          <strong class="acai-extra-nome">${esc(c.nome)}</strong>
+          <span class="acai-extra-preco">+ R$ ${brl(c.preco || 5)}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+window.alternarCremeAcai = function (cremeId) {
+  if (acaiModalState.cremes.has(cremeId)) {
+    acaiModalState.cremes.delete(cremeId);
+  } else {
+    acaiModalState.cremes.add(cremeId);
+  }
+  renderModalMontarAcaiCremes();
+  atualizarResumoAcai();
+};
+
+function calcularPrecoAcaiTotal() {
+  const cfg = D.acaiCustomizavel || DEFAULT_ACAI_CONFIG;
+  const tamAtual = acaiModalState.tamanho || '500ml';
+  const base = (cfg.bases || []).find(b => b.id === acaiModalState.baseId) || (cfg.bases && cfg.bases[0]);
+  let total = base && base.precos && base.precos[tamAtual] !== undefined ? parseFloat(base.precos[tamAtual]) : 18.00;
+
+  acaiModalState.acompanhamentos.forEach(id => {
+    const a = (cfg.acompanhamentos || []).find(it => it.id === id);
+    if (a) total += parseFloat(a.preco) || 0;
+  });
+
+  acaiModalState.cremes.forEach(id => {
+    const c = (cfg.cremes || []).find(it => it.id === id);
+    if (c) total += parseFloat(c.preco) || 0;
+  });
+
+  return total;
+}
+
+function atualizarResumoAcai() {
+  const cfg = D.acaiCustomizavel || DEFAULT_ACAI_CONFIG;
+  const tam = (cfg.tamanhos || []).find(t => t.id === acaiModalState.tamanho) || { nome: acaiModalState.tamanho };
+  const base = (cfg.bases || []).find(b => b.id === acaiModalState.baseId) || { nome: 'Açaí' };
+  const total = calcularPrecoAcaiTotal();
+
+  const qAcomp = acaiModalState.acompanhamentos.size;
+  const qCremes = acaiModalState.cremes.size;
+
+  let txtDesc = `<strong>${esc(tam.nome)}</strong> • ${esc(base.nome)}`;
+  if (qAcomp > 0) txtDesc += ` • ${qAcomp} acomp.`;
+  if (qCremes > 0) txtDesc += ` • ${qCremes} ${qCremes === 1 ? 'creme' : 'cremes'}`;
+
+  const descEl = $('#acai-resumo-descricao');
+  if (descEl) descEl.innerHTML = txtDesc;
+
+  const valEl = $('#acai-resumo-valor');
+  if (valEl) valEl.textContent = `R$ ${brl(total)}`;
+}
+
+window.confirmarAdicionarAcaiCarrinho = function (ev) {
+  const cfg = D.acaiCustomizavel || DEFAULT_ACAI_CONFIG;
+  const tam = (cfg.tamanhos || []).find(t => t.id === acaiModalState.tamanho) || { id: '500ml', nome: 'Copo 500ml' };
+  const base = (cfg.bases || []).find(b => b.id === acaiModalState.baseId) || (cfg.bases && cfg.bases[0]) || { nome: 'Açaí Tradicional' };
+  
+  const acompNomes = Array.from(acaiModalState.acompanhamentos)
+    .map(id => ((cfg.acompanhamentos || []).find(a => a.id === id) || {}).nome)
+    .filter(Boolean);
+
+  const cremeNomes = Array.from(acaiModalState.cremes)
+    .map(id => ((cfg.cremes || []).find(c => c.id === id) || {}).nome)
+    .filter(Boolean);
+
+  let descLinhas = [`Base: ${base.nome}`];
+  if (acompNomes.length) descLinhas.push(`Acompanhamentos: ${acompNomes.join(', ')}`);
+  if (cremeNomes.length) descLinhas.push(`Cremes: ${cremeNomes.join(', ')}`);
+
+  const precoTotal = calcularPrecoAcaiTotal();
+  const nomeProduto = `Açaí no ${tam.nome}`;
+  const descFormatada = descLinhas.join(' • ');
+
+  carrinho.push({
+    itemIndex: -99,
+    nome: nomeProduto,
+    nomeCompleto: `${nomeProduto} - ${base.nome}`,
+    tamanho: tam.id,
+    desc: descFormatada,
+    preco: precoTotal,
+    precoAntigo: 0,
+    img: base.img || '/assets/marca/cat-acai-monte.webp',
+    imgRot: 0,
+    imgScale: 100,
+    imgPosX: 0,
+    imgPosY: 0,
+    imgFit: 'cover',
+    qtd: 1,
+    isAcaiCustom: true
+  });
+
+  salvarCarrinho();
+  atualizarBadgeCarrinho();
+  fecharModalMontarAcai();
+  toast('🍧 Seu açaí personalizado foi adicionado ao pedido!');
+  abrirCarrinho();
+};
+
+window.confirmarPedirAcaiZap = function () {
+  const cfg = D.acaiCustomizavel || DEFAULT_ACAI_CONFIG;
+  const tam = (cfg.tamanhos || []).find(t => t.id === acaiModalState.tamanho) || { nome: 'Copo 500ml' };
+  const base = (cfg.bases || []).find(b => b.id === acaiModalState.baseId) || { nome: 'Açaí Tradicional' };
+  
+  const acompNomes = Array.from(acaiModalState.acompanhamentos)
+    .map(id => ((cfg.acompanhamentos || []).find(a => a.id === id) || {}).nome)
+    .filter(Boolean);
+
+  const cremeNomes = Array.from(acaiModalState.cremes)
+    .map(id => ((cfg.cremes || []).find(c => c.id === id) || {}).nome)
+    .filter(Boolean);
+
+  const total = brl(calcularPrecoAcaiTotal());
+
+  let msg = `🍧 *PEDIDO DE AÇAÍ PERSONALIZADO - ${CONFIG.nome || 'SORVETERIA LOLLA'}* 🍧\n\n` +
+            `Olá! Gostaria de pedir o seguinte Açaí Montado:\n\n` +
+            `🍨 *Tamanho:* ${tam.nome}\n` +
+            `🍇 *Base:* ${base.nome}\n`;
+
+  if (acompNomes.length) {
+    msg += `🍓 *Acompanhamentos:* ${acompNomes.join(', ')}\n`;
+  }
+  if (cremeNomes.length) {
+    msg += `🍪 *Cremes Especiais:* ${cremeNomes.join(', ')}\n`;
+  }
+
+  msg += `\n💵 *VALOR TOTAL: R$ ${total}*`;
+
+  fecharModalMontarAcai();
+  const urlZap = `https://wa.me/${CONFIG.whatsapp}?text=` + encodeURIComponent(msg);
+  window.open(urlZap, '_blank');
+};
+
+/* ==========================================================
+ * SISTEMA: GERENCIADOR DE AÇAÍ (ADMIN: PREÇOS, FOTOS E NOMES)
+ * ========================================================== */
+
+let acaiAdminTempConfig = null;
+
+window.abrirModalAdminAcai = function () {
+  if (!isAdmin) return;
+  ensureExtraData();
+  acaiAdminTempConfig = JSON.parse(JSON.stringify(D.acaiCustomizavel || DEFAULT_ACAI_CONFIG));
+  trocarAbaAdminAcai('bases');
+  $('#modal-admin-acai').classList.add('aberto');
+};
+
+window.fecharModalAdminAcai = function () {
+  $('#modal-admin-acai').classList.remove('aberto');
+  acaiAdminTempConfig = null;
+};
+
+window.trocarAbaAdminAcai = function (aba) {
+  ['bases', 'acompanhamentos', 'cremes'].forEach(a => {
+    const el = $(`#aba-admin-acai-${a}`);
+    const btn = $(`#btn-aba-${a === 'bases' ? 'bases' : (a === 'acompanhamentos' ? 'acomp' : 'cremes')}`);
+    if (el) el.style.display = (a === aba) ? 'block' : 'none';
+    if (btn) {
+      if (a === aba) btn.classList.add('ativo');
+      else btn.classList.remove('ativo');
+    }
+  });
+
+  if (aba === 'bases') renderAdminAcaiBases();
+  else if (aba === 'acompanhamentos') renderAdminAcaiAcomp();
+  else if (aba === 'cremes') renderAdminAcaiCremes();
+};
+
+function renderAdminAcaiBases() {
+  const el = $('#lista-admin-bases');
+  if (!el || !acaiAdminTempConfig) return;
+  const bases = acaiAdminTempConfig.bases || [];
+
+  el.innerHTML = bases.map((b, idx) => `
+    <div class="acai-admin-item-card" data-idx="${idx}">
+      <div style="width:48px;height:48px;border-radius:10px;background:#fff;overflow:hidden;flex-shrink:0;border:1px solid var(--borda)">
+        <img id="admin-base-img-prev-${idx}" src="${esc(b.img || '/assets/marca/cat-acai-monte.webp')}" style="width:100%;height:100%;object-fit:cover">
+      </div>
+      <div style="flex:1;min-width:180px">
+        <label style="font-size:11px;font-weight:700;color:var(--tinta-fraca)">Nome da Base:</label>
+        <input type="text" value="${esc(b.nome)}" onchange="acaiAdminTempConfig.bases[${idx}].nome = this.value" style="width:100%;padding:6px 10px;border-radius:8px;border:1.5px solid var(--borda)">
+      </div>
+      <div style="width:100px">
+        <label style="font-size:11px;font-weight:700;color:var(--tinta-fraca)">Preço 300ml:</label>
+        <input type="number" step="0.50" value="${b.precos ? b.precos['300ml'] : 15}" onchange="if(!acaiAdminTempConfig.bases[${idx}].precos) acaiAdminTempConfig.bases[${idx}].precos={}; acaiAdminTempConfig.bases[${idx}].precos['300ml'] = parseFloat(this.value)||0" style="width:100%;padding:6px 8px;border-radius:8px;border:1.5px solid var(--borda)">
+      </div>
+      <div style="width:100px">
+        <label style="font-size:11px;font-weight:700;color:var(--tinta-fraca)">Preço 500ml:</label>
+        <input type="number" step="0.50" value="${b.precos ? b.precos['500ml'] : 18}" onchange="if(!acaiAdminTempConfig.bases[${idx}].precos) acaiAdminTempConfig.bases[${idx}].precos={}; acaiAdminTempConfig.bases[${idx}].precos['500ml'] = parseFloat(this.value)||0" style="width:100%;padding:6px 8px;border-radius:8px;border:1.5px solid var(--borda)">
+      </div>
+      <div>
+        <label class="btn-admin secundario" style="font-size:12px;padding:6px 10px;cursor:pointer">
+          📷 Foto
+          <input type="file" accept="image/*" style="display:none" onchange="uploadFotoBaseAdmin(${idx}, event)">
+        </label>
+        <button type="button" class="btn-admin perigo" onclick="removerBaseAcai(${idx})" style="padding:6px 10px;font-size:12px">🗑️</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+window.uploadFotoBaseAdmin = async function (idx, ev) {
+  const file = ev.target.files && ev.target.files[0];
+  if (!file) return;
+  toast('📸 Otimizando e enviando foto da base...');
+  const url = await uploadImagemArquivo(file);
+  if (url && acaiAdminTempConfig && acaiAdminTempConfig.bases[idx]) {
+    acaiAdminTempConfig.bases[idx].img = url;
+    const imgPrev = $(`#admin-base-img-prev-${idx}`);
+    if (imgPrev) imgPrev.src = url;
+  }
+};
+
+window.adicionarNovaBaseAcai = function () {
+  if (!acaiAdminTempConfig) return;
+  const novoId = 'base-' + Date.now();
+  acaiAdminTempConfig.bases.push({
+    id: novoId,
+    nome: 'Nova Base de Açaí',
+    desc: 'Delicioso açaí especial',
+    img: '/assets/marca/cat-acai-monte.webp',
+    precos: { '300ml': 16.00, '500ml': 19.00 },
+    ativo: true
+  });
+  renderAdminAcaiBases();
+};
+
+window.removerBaseAcai = function (idx) {
+  if (!acaiAdminTempConfig || !acaiAdminTempConfig.bases[idx]) return;
+  if (!confirm(`Deseja realmente remover "${acaiAdminTempConfig.bases[idx].nome}"?`)) return;
+  acaiAdminTempConfig.bases.splice(idx, 1);
+  renderAdminAcaiBases();
+};
+
+function renderAdminAcaiAcomp() {
+  const el = $('#lista-admin-acompanhamentos');
+  if (!el || !acaiAdminTempConfig) return;
+  const acomp = acaiAdminTempConfig.acompanhamentos || [];
+
+  el.innerHTML = acomp.map((a, idx) => `
+    <div class="acai-admin-item-card" data-idx="${idx}">
+      <div style="width:40px;height:40px;border-radius:10px;background:#fff;display:grid;place-items:center;font-size:22px;flex-shrink:0;overflow:hidden;border:1px solid var(--borda)">
+        ${a.img ? `<img src="${esc(a.img)}" style="width:100%;height:100%;object-fit:cover">` : `<span>${a.icone || '🍓'}</span>`}
+      </div>
+      <div style="flex:1;min-width:160px">
+        <label style="font-size:11px;font-weight:700;color:var(--tinta-fraca)">Nome:</label>
+        <input type="text" value="${esc(a.nome)}" onchange="acaiAdminTempConfig.acompanhamentos[${idx}].nome = this.value" style="width:100%;padding:6px 10px;border-radius:8px;border:1.5px solid var(--borda)">
+      </div>
+      <div style="width:90px">
+        <label style="font-size:11px;font-weight:700;color:var(--tinta-fraca)">Preço (R$):</label>
+        <input type="number" step="0.50" value="${a.preco || 4}" onchange="acaiAdminTempConfig.acompanhamentos[${idx}].preco = parseFloat(this.value)||0" style="width:100%;padding:6px 8px;border-radius:8px;border:1.5px solid var(--borda)">
+      </div>
+      <div>
+        <label class="btn-admin secundario" style="font-size:12px;padding:6px 10px;cursor:pointer">
+          📷 Foto
+          <input type="file" accept="image/*" style="display:none" onchange="uploadFotoAcompAdmin(${idx}, event)">
+        </label>
+        <button type="button" class="btn-admin perigo" onclick="removerAcompanhamentoAcai(${idx})" style="padding:6px 10px;font-size:12px">🗑️</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+window.uploadFotoAcompAdmin = async function (idx, ev) {
+  const file = ev.target.files && ev.target.files[0];
+  if (!file) return;
+  toast('📸 Enviando foto do acompanhamento...');
+  const url = await uploadImagemArquivo(file);
+  if (url && acaiAdminTempConfig && acaiAdminTempConfig.acompanhamentos[idx]) {
+    acaiAdminTempConfig.acompanhamentos[idx].img = url;
+    renderAdminAcaiAcomp();
+  }
+};
+
+window.adicionarNovoAcompanhamentoAcai = function () {
+  if (!acaiAdminTempConfig) return;
+  const novoId = 'acomp-' + Date.now();
+  acaiAdminTempConfig.acompanhamentos.push({
+    id: novoId,
+    nome: 'Novo Acompanhamento',
+    preco: 4.00,
+    img: '',
+    icone: '✨',
+    ativo: true
+  });
+  renderAdminAcaiAcomp();
+};
+
+window.removerAcompanhamentoAcai = function (idx) {
+  if (!acaiAdminTempConfig || !acaiAdminTempConfig.acompanhamentos[idx]) return;
+  acaiAdminTempConfig.acompanhamentos.splice(idx, 1);
+  renderAdminAcaiAcomp();
+};
+
+function renderAdminAcaiCremes() {
+  const el = $('#lista-admin-cremes');
+  if (!el || !acaiAdminTempConfig) return;
+  const cremes = acaiAdminTempConfig.cremes || [];
+
+  el.innerHTML = cremes.map((c, idx) => `
+    <div class="acai-admin-item-card" data-idx="${idx}">
+      <div style="width:40px;height:40px;border-radius:10px;background:#fff;display:grid;place-items:center;font-size:22px;flex-shrink:0;overflow:hidden;border:1px solid var(--borda)">
+        ${c.img ? `<img src="${esc(c.img)}" style="width:100%;height:100%;object-fit:cover">` : `<span>${c.icone || '🍪'}</span>`}
+      </div>
+      <div style="flex:1;min-width:160px">
+        <label style="font-size:11px;font-weight:700;color:var(--tinta-fraca)">Nome:</label>
+        <input type="text" value="${esc(c.nome)}" onchange="acaiAdminTempConfig.cremes[${idx}].nome = this.value" style="width:100%;padding:6px 10px;border-radius:8px;border:1.5px solid var(--borda)">
+      </div>
+      <div style="width:90px">
+        <label style="font-size:11px;font-weight:700;color:var(--tinta-fraca)">Preço (R$):</label>
+        <input type="number" step="0.50" value="${c.preco || 5}" onchange="acaiAdminTempConfig.cremes[${idx}].preco = parseFloat(this.value)||0" style="width:100%;padding:6px 8px;border-radius:8px;border:1.5px solid var(--borda)">
+      </div>
+      <div>
+        <label class="btn-admin secundario" style="font-size:12px;padding:6px 10px;cursor:pointer">
+          📷 Foto
+          <input type="file" accept="image/*" style="display:none" onchange="uploadFotoCremeAdmin(${idx}, event)">
+        </label>
+        <button type="button" class="btn-admin perigo" onclick="removerCremeAcai(${idx})" style="padding:6px 10px;font-size:12px">🗑️</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+window.uploadFotoCremeAdmin = async function (idx, ev) {
+  const file = ev.target.files && ev.target.files[0];
+  if (!file) return;
+  toast('📸 Enviando foto do creme...');
+  const url = await uploadImagemArquivo(file);
+  if (url && acaiAdminTempConfig && acaiAdminTempConfig.cremes[idx]) {
+    acaiAdminTempConfig.cremes[idx].img = url;
+    renderAdminAcaiCremes();
+  }
+};
+
+window.adicionarNovoCremeAcai = function () {
+  if (!acaiAdminTempConfig) return;
+  const novoId = 'creme-' + Date.now();
+  acaiAdminTempConfig.cremes.push({
+    id: novoId,
+    nome: 'Novo Creme',
+    preco: 5.00,
+    img: '',
+    icone: '✨',
+    ativo: true
+  });
+  renderAdminAcaiCremes();
+};
+
+window.removerCremeAcai = function (idx) {
+  if (!acaiAdminTempConfig || !acaiAdminTempConfig.cremes[idx]) return;
+  acaiAdminTempConfig.cremes.splice(idx, 1);
+  renderAdminAcaiCremes();
+};
+
+window.salvarConfiguracoesAdminAcai = async function () {
+  if (!isAdmin || !acaiAdminTempConfig) return;
+  D.acaiCustomizavel = JSON.parse(JSON.stringify(acaiAdminTempConfig));
+  fecharModalAdminAcai();
+  toast('💾 Opções do Açaí atualizadas e salvas!');
+  await salvarCardapio(false);
+  render();
+};
+
+/* ==========================================================
+ * SISTEMA: GERENCIADOR DE DESTAQUES DA SEMANA (ADMIN)
+ * ========================================================== */
+
+let destaquesTempIds = [];
+let filtroDestaqueTexto = '';
+
+window.abrirModalGerenciarDestaques = function () {
+  if (!isAdmin) return;
+  ensureExtraData();
+  destaquesTempIds = Array.isArray(D.destaquesMomento) ? [...D.destaquesMomento] : [0, 1, 2];
+  filtroDestaqueTexto = '';
+  const searchInput = $('#busca-produtos-destaque');
+  if (searchInput) searchInput.value = '';
+  renderListaProdutosModalDestaque();
+  $('#modal-gerenciar-destaques').classList.add('aberto');
+};
+
+window.fecharModalGerenciarDestaques = function () {
+  $('#modal-gerenciar-destaques').classList.remove('aberto');
+};
+
+window.filtrarProdutosModalDestaque = function (val) {
+  filtroDestaqueTexto = (val || '').trim().toLowerCase();
+  renderListaProdutosModalDestaque();
+};
+
+function renderListaProdutosModalDestaque() {
+  const el = $('#lista-produtos-para-destaque');
+  const contador = $('#contador-destaques-selecionados');
+  if (!el || !D || !D.itens) return;
+
+  if (contador) {
+    contador.textContent = `${destaquesTempIds.length} selecionados`;
+  }
+
+  const produtosFiltrados = D.itens.map((it, idx) => ({ it, idx })).filter(({ it }) => {
+    if (!filtroDestaqueTexto) return true;
+    return (it.n && it.n.toLowerCase().includes(filtroDestaqueTexto)) ||
+           (it.c && it.c.toLowerCase().includes(filtroDestaqueTexto)) ||
+           (it.d && it.d.toLowerCase().includes(filtroDestaqueTexto));
+  });
+
+  if (!produtosFiltrados.length) {
+    el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--tinta-fraca)">Nenhum produto encontrado.</div>';
+    return;
+  }
+
+  el.innerHTML = produtosFiltrados.map(({ it, idx }) => {
+    const sel = destaquesTempIds.includes(idx) || destaquesTempIds.includes(it.n);
+    const { title, size } = formatProduct(it);
+    const imgSrc = it.img || (it.j ? CONFIG.fotosBaseUrl + it.j : '/assets/marca/cat-acai-monte.webp');
+
+    return `
+      <div class="acai-admin-item-card" style="cursor:pointer;border-color:${sel ? '#D48806' : 'var(--borda)'};background:${sel ? '#FFFDF5' : '#fff'}" onclick="toggleProdutoDestaqueAdmin(${idx})">
+        <input type="checkbox" ${sel ? 'checked' : ''} style="width:20px;height:20px;accent-color:#D48806;pointer-events:none">
+        <div style="width:44px;height:44px;border-radius:10px;background:#fff;overflow:hidden;flex-shrink:0;border:1px solid var(--borda)">
+          <img src="${esc(imgSrc)}" style="width:100%;height:100%;object-fit:cover">
+        </div>
+        <div style="flex:1;min-width:180px">
+          <strong style="display:block;font-size:13.5px;color:var(--tinta)">${esc(title)}</strong>
+          <span style="font-size:11.5px;color:var(--tinta-fraca)">${esc(it.c)} ${size ? `• ${esc(size)}` : ''}</span>
+        </div>
+        <span style="font-weight:800;color:#85060F;font-size:14px">R$ ${brl(it.p)}</span>
+        <span style="font-size:11px;font-weight:800;color:${sel ? '#D48806' : '#999'};background:${sel ? '#FFF8E7' : '#f0f0f0'};padding:3px 8px;border-radius:999px">
+          ${sel ? '⭐ Destacado' : 'Normal'}
+        </span>
+      </div>
+    `;
+  }).join('');
+}
+
+window.toggleProdutoDestaqueAdmin = function (itemIndex) {
+  const pos = destaquesTempIds.indexOf(itemIndex);
+  if (pos >= 0) {
+    destaquesTempIds.splice(pos, 1);
+  } else {
+    destaquesTempIds.push(itemIndex);
+  }
+  renderListaProdutosModalDestaque();
+};
+
+window.salvarDestaquesSemana = async function () {
+  if (!isAdmin) return;
+  D.destaquesMomento = [...destaquesTempIds];
+  fecharModalGerenciarDestaques();
+  toast('⭐ Destaques da semana atualizados com sucesso!');
+  await salvarCardapio(false);
+  renderDestaquesMomento();
+  render();
+};
+
+window.alternarDestaqueProduto = async function (itemIndex) {
+  if (!isAdmin) return;
+  ensureExtraData();
+  if (!Array.isArray(D.destaquesMomento)) D.destaquesMomento = [0, 1, 2];
+
+  const pos = D.destaquesMomento.indexOf(itemIndex);
+  const it = D.itens[itemIndex];
+  const nome = it ? it.n : 'Produto';
+
+  if (pos >= 0) {
+    D.destaquesMomento.splice(pos, 1);
+    toast(`⭐ "${nome}" removido dos destaques`);
+  } else {
+    D.destaquesMomento.push(itemIndex);
+    toast(`⭐ "${nome}" agora está em destaque no topo do site!`);
+  }
+
+  await salvarCardapio(false);
+  renderDestaquesMomento();
+  render();
 };
 
 window.abrirModalCasquinhas = function () {
