@@ -122,6 +122,18 @@ const DEFAULT_BLOG = [
   }
 ];
 
+const DEFAULT_ICONES_NOSSOS_PRODUTOS = [
+  { id: 'copao-acai', cat: 'Copão Açaí', label: 'Copão Açaí', img: '/assets/marca/cat-copao-acai.webp' },
+  { id: 'copao', cat: 'Copão', label: 'Copão', img: '/assets/marca/cat-copao.webp' },
+  { id: 'supremo', cat: 'Supremo', label: 'Supremo', img: '/assets/marca/cat-supremo.webp' },
+  { id: 'picoles-premium', cat: 'Picolés Premium Spettacolo', label: 'Picolés Premium', img: '/assets/marca/cat-picoles-premium.webp' },
+  { id: 'corneto', cat: 'Corneto', label: 'Corneto', img: '/assets/marca/cat-corneto.webp' },
+  { id: 'picoles-cremosos', cat: 'Picolés Cremosos', label: 'Picolés Cremosos', img: '/assets/marca/cat-picoles-cremosos.webp' },
+  { id: 'acai-monte', cat: 'Açaí Monte o Seu!!!', label: 'Açaí Monte o Seu', img: '/assets/marca/cat-acai-monte.webp' },
+  { id: 'acai-pote', cat: 'Açaí no Pote!', label: 'Açaí no Pote', img: '/assets/marca/cat-acai-pote.webp' },
+  { id: 'milkshakes', cat: 'Milkshake\'s', label: 'Milkshake\'s', img: '/assets/marca/cat-milkshakes.webp' }
+];
+
 try {
   const savedCfgV2 = localStorage.getItem('lolla_store_config_v2');
   if (savedCfgV2) CONFIG = { ...CONFIG, ...JSON.parse(savedCfgV2) };
@@ -302,6 +314,9 @@ function ensureExtraData() {
   }
   if (!Array.isArray(D.destaquesMomento)) {
     D.destaquesMomento = [0, 1, 2];
+  }
+  if (!Array.isArray(D.iconesNossosProdutos) || !D.iconesNossosProdutos.length) {
+    D.iconesNossosProdutos = JSON.parse(JSON.stringify(DEFAULT_ICONES_NOSSOS_PRODUTOS));
   }
 }
 
@@ -1187,12 +1202,35 @@ function sincronizarDestaquesCategoria(catReal) {
   document.querySelectorAll('.cat-icone-card').forEach(btn => {
     const label = btn.querySelector('.cat-icone-label');
     const nomeBtn = label ? label.textContent.trim() : '';
-    if (catAlvo !== 'Todas' && (catAlvo.includes(nomeBtn) || nomeBtn.includes(catAlvo))) {
+    if (catAlvo !== 'Todas' && (catAlvo === nomeBtn || catAlvo.includes(nomeBtn) || nomeBtn.includes(catAlvo))) {
       btn.classList.add('ativo');
     } else {
       btn.classList.remove('ativo');
     }
   });
+}
+
+function renderCategoriasIcones() {
+  const container = document.getElementById('categorias-icones-scroll');
+  if (!container || !D) return;
+  ensureExtraData();
+  const list = D.iconesNossosProdutos || [];
+  const catAlvo = cat || 'Todas';
+
+  container.innerHTML = list.map((item, idx) => {
+    const isAtivo = (catAlvo !== 'Todas' && (catAlvo === item.cat || catAlvo.includes(item.label) || item.label.includes(catAlvo)));
+    return `
+      <div class="cat-icone-card ${isAtivo ? 'ativo' : ''}" role="button" tabindex="0" onclick="selecionarCategoriaIcone('${esc(item.cat)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selecionarCategoriaIcone('${esc(item.cat)}')}">
+        <div class="cat-icone-img-wrap">
+          <img src="${esc(item.img)}" alt="${esc(item.label)}" width="72" height="80" loading="lazy">
+          <button type="button" class="btn-editar-icone-cat" onclick="abrirSeletorFotoCatIcone(${idx}, event)" title="Trocar Foto de ${esc(item.label)}">📷</button>
+          <input type="file" id="input-foto-cat-icone-${idx}" accept="image/*" style="display:none" onchange="uploadFotoCategoriaIcone(${idx}, event)">
+        </div>
+        <span class="cat-icone-label">${esc(item.label)}</span>
+        <span class="cat-indicador-barra"></span>
+      </div>
+    `;
+  }).join('');
 }
 
 function selecionarCategoriaIcone(catReal) {
@@ -1479,6 +1517,7 @@ function atualizarEstadoAutenticacao() {
   } else {
     document.body.classList.remove('admin-autenticado');
   }
+  renderCategoriasIcones();
 }
 
 window.abrirModalLogin = function () {
@@ -3295,6 +3334,198 @@ window.alternarDestaqueProduto = async function (itemIndex) {
   render();
 };
 
+/* ==========================================================
+ * GERENCIAR FOTOS DE NOSSOS PRODUTOS (ADMIN)
+ * ========================================================== */
+
+window.abrirSeletorFotoCatIcone = function (idx, ev) {
+  if (ev) {
+    ev.stopPropagation();
+    ev.preventDefault();
+  }
+  const input = document.getElementById(`input-foto-cat-icone-${idx}`);
+  if (input) input.click();
+};
+
+window.uploadFotoCategoriaIcone = async function (idx, ev) {
+  if (ev) ev.stopPropagation();
+  const file = ev.target.files && ev.target.files[0];
+  if (!file) return;
+  toast('📸 Otimizando e enviando foto para o Supabase...');
+  try {
+    const url = await uploadImagemArquivo(file);
+    if (!url) throw new Error('Falha ao processar imagem');
+    ensureExtraData();
+    if (D.iconesNossosProdutos && D.iconesNossosProdutos[idx]) {
+      D.iconesNossosProdutos[idx].img = url;
+      toast('✅ Foto da categoria salva no Supabase com sucesso!');
+      await salvarCardapio(false);
+      renderCategoriasIcones();
+    }
+  } catch (err) {
+    console.error('Erro ao trocar foto da categoria:', err);
+    toast('❌ Erro ao enviar foto: ' + (err.message || err));
+  }
+};
+
+let iconesCategoriasTemp = [];
+
+window.abrirModalGerenciarIconesCategorias = function () {
+  if (!isAdmin) {
+    toast('Acesso restrito ao administrador');
+    return;
+  }
+  ensureExtraData();
+  iconesCategoriasTemp = JSON.parse(JSON.stringify(D.iconesNossosProdutos || DEFAULT_ICONES_NOSSOS_PRODUTOS));
+  renderListaIconesCategoriasAdmin();
+  const modal = $('#modal-gerenciar-icones-cats');
+  if (modal) modal.classList.add('aberto');
+};
+
+window.fecharModalGerenciarIconesCategorias = function () {
+  const modal = $('#modal-gerenciar-icones-cats');
+  if (modal) modal.classList.remove('aberto');
+};
+
+function renderListaIconesCategoriasAdmin() {
+  const listaEl = document.getElementById('lista-icones-categorias-admin');
+  if (!listaEl) return;
+
+  const todasCategorias = Array.isArray(D.cats) ? D.cats : [];
+
+  if (!iconesCategoriasTemp.length) {
+    listaEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--tinta-fraca)">Nenhuma categoria cadastrada.</div>';
+    return;
+  }
+
+  listaEl.innerHTML = iconesCategoriasTemp.map((item, idx) => {
+    const catOptionsHtml = todasCategorias.map(c => `
+      <option value="${esc(c)}" ${item.cat === c ? 'selected' : ''}>${esc(c)}</option>
+    `).join('');
+
+    return `
+      <div class="icone-cat-admin-item">
+        <div class="icone-cat-thumb-wrap">
+          <img src="${esc(item.img)}" alt="${esc(item.label)}">
+        </div>
+        <div class="icone-cat-inputs">
+          <div style="display:flex;gap:6px;align-items:center">
+            <button type="button" class="btn-admin secundario" onclick="document.getElementById('modal-cat-file-${idx}').click()" style="font-size:11px;padding:4px 8px;white-space:nowrap">
+              📁 Trocar Foto
+            </button>
+            <input type="file" id="modal-cat-file-${idx}" accept="image/*" style="display:none" onchange="uploadFotoIconeModal(${idx}, event)">
+            <input type="text" value="${esc(item.img)}" placeholder="URL da Foto..." oninput="atualizarImgUrlIconeModal(${idx}, this.value)" style="flex:1">
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+            <div>
+              <label style="font-size:10px;font-weight:700;color:var(--tinta-fraca);display:block">Título exibido:</label>
+              <input type="text" value="${esc(item.label)}" placeholder="Nome exibido" oninput="atualizarLabelIconeModal(${idx}, this.value)">
+            </div>
+            <div>
+              <label style="font-size:10px;font-weight:700;color:var(--tinta-fraca);display:block">Categoria vinculada no cardápio:</label>
+              <select onchange="atualizarCatVinculadaModal(${idx}, this.value)">
+                ${catOptionsHtml}
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="icone-cat-acoes">
+          <button type="button" class="icone-cat-btn-acao" onclick="moverIconeCategoriaModal(${idx}, -1)" ${idx === 0 ? 'disabled style="opacity:.4"' : ''} title="Mover para cima">▲</button>
+          <button type="button" class="icone-cat-btn-acao" onclick="moverIconeCategoriaModal(${idx}, 1)" ${idx === iconesCategoriasTemp.length - 1 ? 'disabled style="opacity:.4"' : ''} title="Mover para baixo">▼</button>
+          <button type="button" class="icone-cat-btn-acao danger" onclick="removerIconeCategoriaModal(${idx})" title="Excluir este ícone">🗑</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+window.atualizarLabelIconeModal = function (idx, val) {
+  if (iconesCategoriasTemp[idx]) {
+    iconesCategoriasTemp[idx].label = val;
+  }
+};
+
+window.atualizarCatVinculadaModal = function (idx, val) {
+  if (iconesCategoriasTemp[idx]) {
+    iconesCategoriasTemp[idx].cat = val;
+  }
+};
+
+window.atualizarImgUrlIconeModal = function (idx, val) {
+  if (iconesCategoriasTemp[idx]) {
+    iconesCategoriasTemp[idx].img = val;
+    const thumbWrap = document.querySelectorAll('.icone-cat-thumb-wrap')[idx];
+    if (thumbWrap) {
+      const img = thumbWrap.querySelector('img');
+      if (img) img.src = val;
+    }
+  }
+};
+
+window.uploadFotoIconeModal = async function (idx, ev) {
+  const file = ev.target.files && ev.target.files[0];
+  if (!file) return;
+  toast('📸 Otimizando e enviando foto para o Supabase...');
+  try {
+    const url = await uploadImagemArquivo(file);
+    if (!url) throw new Error('Falha no upload');
+    if (iconesCategoriasTemp[idx]) {
+      iconesCategoriasTemp[idx].img = url;
+      renderListaIconesCategoriasAdmin();
+      toast('✅ Foto da categoria carregada!');
+    }
+  } catch (err) {
+    console.error('Erro upload foto modal:', err);
+    toast('❌ Falha ao enviar foto: ' + (err.message || err));
+  }
+};
+
+window.adicionarNovoIconeCategoriaModal = function () {
+  ensureExtraData();
+  const primeiraCat = (D.cats && D.cats[0]) || 'Geral';
+  iconesCategoriasTemp.push({
+    id: 'cat-' + Date.now(),
+    cat: primeiraCat,
+    label: primeiraCat,
+    img: '/assets/marca/cat-acai-monte.webp'
+  });
+  renderListaIconesCategoriasAdmin();
+};
+
+window.moverIconeCategoriaModal = function (idx, direcao) {
+  const novoIdx = idx + direcao;
+  if (novoIdx < 0 || novoIdx >= iconesCategoriasTemp.length) return;
+  const temp = iconesCategoriasTemp[idx];
+  iconesCategoriasTemp[idx] = iconesCategoriasTemp[novoIdx];
+  iconesCategoriasTemp[novoIdx] = temp;
+  renderListaIconesCategoriasAdmin();
+};
+
+window.removerIconeCategoriaModal = function (idx) {
+  if (confirm(`Remover "${iconesCategoriasTemp[idx]?.label || 'este item'}" de Nossos Produtos?`)) {
+    iconesCategoriasTemp.splice(idx, 1);
+    renderListaIconesCategoriasAdmin();
+  }
+};
+
+window.restaurarPadraoIconesCategorias = function () {
+  if (confirm('Deseja restaurar as 9 categorias e fotos originais padrão?')) {
+    iconesCategoriasTemp = JSON.parse(JSON.stringify(DEFAULT_ICONES_NOSSOS_PRODUTOS));
+    renderListaIconesCategoriasAdmin();
+    toast('Fotos e categorias restauradas para o padrão.');
+  }
+};
+
+window.salvarModalIconesCategorias = async function () {
+  if (!isAdmin) return;
+  ensureExtraData();
+  D.iconesNossosProdutos = JSON.parse(JSON.stringify(iconesCategoriasTemp));
+  fecharModalGerenciarIconesCategorias();
+  toast('📸 Fotos de "Nossos Produtos" salvas com sucesso no Supabase!');
+  await salvarCardapio(false);
+  renderCategoriasIcones();
+};
+
 window.abrirModalCasquinhas = function () {
   if (!isAdmin) return;
   ensureExtraData();
@@ -3896,6 +4127,7 @@ async function init() {
   render();
   atualizarBadgeCarrinho();
   renderCarrinho();
+  renderCategoriasIcones();
   sincronizarDestaquesCategoria(cat);
   setupEvents();
 

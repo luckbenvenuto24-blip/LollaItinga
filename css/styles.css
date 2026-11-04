@@ -150,7 +150,7 @@ h1,h2,h3{font-family:'Baloo 2',ui-rounded,'Segoe UI',system-ui,sans-serif;
 /* ------------------------------------------------------------- HERO BANNER OFICIAL RESPONSIVO (PC & Celular) */
 .hero-banner-wrap{width:100%;margin:0;padding:0;position:relative;z-index:3;overflow:hidden}
 .hero-banner-card-premium{
-  position:relative;width:100%;aspect-ratio:1024 / 374;
+  position:relative;width:100%;aspect-ratio:1024 / 424;
   overflow:hidden;background:#75040B;display:block;
 }
 .hero-banner-picture{
@@ -166,7 +166,7 @@ h1,h2,h3{font-family:'Baloo 2',ui-rounded,'Segoe UI',system-ui,sans-serif;
   .hero-logo{width:88px;filter:drop-shadow(0 3px 8px rgba(0,0,0,.26))}
   .btn-meu-pedido-topo{padding:6px 14px;font-size:12px}
   .busca-topo-capsula{order:3;max-width:100%;margin:4px 0 0}
-  .hero-banner-card-premium{aspect-ratio:1024 / 460;min-height:auto}
+  .hero-banner-card-premium{aspect-ratio:860 / 424;min-height:auto}
 }
 
 /* ------------------------------------------------------------- SEÇÃO 1: NOSSOS PRODUTOS (Ícones Centralizados) */
@@ -194,23 +194,53 @@ h1,h2,h3{font-family:'Baloo 2',ui-rounded,'Segoe UI',system-ui,sans-serif;
 
 .cat-icone-card{
   background:transparent;border:none;padding:0;cursor:pointer;
-  display:flex;flex-direction:column;align-items:center;
+  display:flex;flex-direction:column;align-items:center;position:relative;
   width:clamp(86px, 9.5vw, 114px);transition:transform .2s;text-align:center;
 }
 .cat-icone-card:hover{transform:translateY(-4px)}
 
 .cat-icone-img-wrap{
-  width:clamp(74px, 7vw, 86px);height:clamp(74px, 7vw, 86px);border-radius:24px;background:#FFF4ED;
-  border:1.5px solid rgba(133,6,15,0.08);display:grid;place-items:center;
+  width:clamp(74px, 7vw, 86px);height:clamp(74px, 7vw, 86px);border-radius:24px;background:#fff;
+  border:1.5px solid rgba(133,6,15,0.12);display:grid;place-items:center;position:relative;
   box-shadow:0 6px 18px rgba(60,20,20,0.06);transition:all .25s;overflow:hidden;
 }
 .cat-icone-card:hover .cat-icone-img-wrap{
   box-shadow:0 10px 24px rgba(133,6,15,0.18);border-color:#85060F;transform:scale(1.04);
 }
 .cat-icone-card.ativo .cat-icone-img-wrap{
-  border-color:#85060F;box-shadow:0 8px 22px rgba(133,6,15,0.22);background:#FFEFE7;
+  border-color:#85060F;box-shadow:0 8px 22px rgba(133,6,15,0.22);background:#fff;
 }
-.cat-icone-img-wrap img{width:85%;height:85%;object-fit:contain;display:block}
+.cat-icone-img-wrap img{width:88%;height:88%;object-fit:contain;display:block}
+
+.btn-editar-icone-cat{
+  display:none;
+  position:absolute;
+  top:3px;
+  right:3px;
+  width:26px;
+  height:26px;
+  border-radius:50%;
+  background:#fff;
+  border:1.5px solid var(--magenta);
+  color:var(--magenta);
+  font-size:12px;
+  cursor:pointer;
+  align-items:center;
+  justify-content:center;
+  box-shadow:0 2px 8px rgba(0,0,0,.22);
+  z-index:5;
+  transition:all .18s ease;
+  line-height:1;
+  padding:0;
+}
+.btn-editar-icone-cat:hover{
+  background:var(--magenta);
+  color:#fff;
+  transform:scale(1.15);
+}
+body.admin-autenticado .btn-editar-icone-cat{
+  display:inline-flex;
+}
 
 .cat-icone-label{
   font-family:'Baloo 2';font-size:13px;font-weight:800;color:var(--tinta);
@@ -221,6 +251,49 @@ h1,h2,h3{font-family:'Baloo 2',ui-rounded,'Segoe UI',system-ui,sans-serif;
   margin:5px auto 0;transition:background .2s;display:block;
 }
 .cat-icone-card.ativo .cat-indicador-barra{background:#85060F}
+
+/* Gerenciador de Ícones das Categorias */
+.icone-cat-admin-item{
+  display:flex;align-items:center;gap:12px;padding:12px;
+  background:#fff;border:1.5px solid var(--borda);border-radius:14px;
+  transition:border-color .2s;
+}
+.icone-cat-admin-item:hover{
+  border-color:var(--magenta);
+}
+.icone-cat-thumb-wrap{
+  width:60px;height:60px;border-radius:16px;background:#fff;border:1px solid var(--borda);
+  display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;position:relative;
+}
+.icone-cat-thumb-wrap img{
+  width:88%;height:88%;object-fit:contain;
+}
+.icone-cat-inputs{
+  flex:1;display:flex;flex-direction:column;gap:6px;min-width:0;
+}
+.icone-cat-inputs input, .icone-cat-inputs select{
+  width:100%;font-size:13px;padding:6px 10px;border-radius:8px;border:1px solid var(--borda);background:#fcfcfc;
+}
+.icone-cat-inputs input:focus, .icone-cat-inputs select:focus{
+  border-color:var(--magenta);background:#fff;outline:none;
+}
+.icone-cat-acoes{
+  display:flex;flex-direction:column;gap:4px;flex-shrink:0;
+}
+.icone-cat-btn-acao{
+  background:#f6f6f6;border:1px solid var(--borda);border-radius:8px;
+  padding:4px 8px;font-size:12px;font-weight:700;cursor:pointer;
+  transition:all .15s;
+}
+.icone-cat-btn-acao:hover{
+  background:#eaeaea;
+}
+.icone-cat-btn-acao.danger{
+  color:#D6154A;border-color:#FCD4DD;background:#FFF0F3;
+}
+.icone-cat-btn-acao.danger:hover{
+  background:#D6154A;color:#fff;
+}
 
 /* ------------------------------------------------------------- SEÇÃO 2: DESTAQUES DO MOMENTO (Centralizados) */
 .secao-destaques-momento{padding:18px 0 34px;margin:0 auto}
