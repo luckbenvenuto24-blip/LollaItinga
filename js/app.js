@@ -340,8 +340,8 @@ function resolveImageTag(it, i) {
   if (it.img) {
     return `<img src="${it.img}" alt="${esc(it.n)}" width="400" height="400"
                  ${styleAttr}
-                 loading="${i < 6 ? 'eager' : 'lazy'}" decoding="async"
-                 fetchpriority="${i < 4 ? 'high' : 'auto'}">`;
+                 loading="${i < 4 ? 'eager' : 'lazy'}" decoding="async"
+                 fetchpriority="${i < 2 ? 'high' : 'low'}">`;
   }
   if (it.w4) {
     return `<picture${styleAttr}>
@@ -349,8 +349,8 @@ function resolveImageTag(it, i) {
               srcset="${CONFIG.fotosBaseUrl}${it.w4} 400w, ${CONFIG.fotosBaseUrl}${it.w6} 600w, ${CONFIG.fotosBaseUrl}${it.w8} 800w">
       <img src="${CONFIG.fotosBaseUrl}${it.j}" alt="${esc(it.n)}" width="400" height="400"
            ${styleAttr}
-           loading="${i < 6 ? 'eager' : 'lazy'}" decoding="async"
-           fetchpriority="${i < 4 ? 'high' : 'auto'}">
+           loading="${i < 4 ? 'eager' : 'lazy'}" decoding="async"
+           fetchpriority="${i < 2 ? 'high' : 'low'}">
     </picture>`;
   }
   return '<div style="display:grid;place-items:center;height:100%;font-size:36px">&#127846;</div>';
@@ -725,157 +725,82 @@ function renderDestaquesMomento() {
  * ANIMAÇÃO E-COMMERCE: PRODUTO VOANDO ATÉ O CARRINHO
  * ========================================================== */
 
-function animarProdutoAteCarrinho(imgOriginal, it, btnClicked, onComplete) {
+function animarProdutoAteCarrinho(imgOriginal, it, btnClicked) {
   const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (prefersReducedMotion || typeof document.createElement !== 'function') {
-    if (typeof onComplete === 'function') onComplete();
-    return;
-  }
+  if (prefersReducedMotion || typeof document.createElement !== 'function') return;
 
-  // 1. Determina posição e medidas de partida
   const startRect = imgOriginal ? imgOriginal.getBoundingClientRect() : (btnClicked ? btnClicked.getBoundingClientRect() : null);
-  if (!startRect || startRect.width === 0 || startRect.height === 0) {
-    if (typeof onComplete === 'function') onComplete();
-    return;
-  }
+  if (!startRect || startRect.width === 0 || startRect.height === 0) return;
 
-  // Efeito tátil de saída na imagem do card
-  if (imgOriginal) {
-    imgOriginal.classList.add('img-produto-decolando');
-    setTimeout(() => {
-      imgOriginal.classList.remove('img-produto-decolando');
-    }, 450);
-  }
-
-  // 2. Extrai a imagem real utilizada pelo produto
-  let imgSrc = '';
-  if (imgOriginal) {
-    imgSrc = imgOriginal.currentSrc || imgOriginal.src || '';
-  }
-  if (!imgSrc && it) {
-    imgSrc = it.img || (it.j ? CONFIG.fotosBaseUrl + it.j : '');
-  }
-
-  // 3. Cria a cópia temporária com proporções reais
-  const flyEl = document.createElement('div');
-  flyEl.className = 'produto-voando-clone';
-  flyEl.setAttribute('aria-hidden', 'true');
-
-  const startW = Math.round(startRect.width);
-  const startH = Math.round(startRect.height);
-  const startX = Math.round(startRect.left);
-  const startY = Math.round(startRect.top);
-
-  flyEl.style.width = `${startW}px`;
-  flyEl.style.height = `${startH}px`;
-  flyEl.style.left = `${startX}px`;
-  flyEl.style.top = `${startY}px`;
-
-  if (imgSrc) {
-    const flyImg = document.createElement('img');
-    flyImg.src = imgSrc;
-    flyImg.alt = (it && it.n) || 'Produto Lolla';
-    flyEl.appendChild(flyImg);
-  } else {
-    flyEl.innerHTML = '<span style="font-size:36px">🍨</span>';
-  }
-
-  document.body.appendChild(flyEl);
-
-  // 4. Determina as coordenadas dinâmicas do carrinho (flutuante ou fixo no topo)
+  // Destino: Ícone do carrinho (fixo ou flutuante)
   const btnFlut = document.querySelector('#btn-meu-pedido-flutuante');
   const flutVisivel = btnFlut && btnFlut.classList.contains('visivel');
   const cartBtn = flutVisivel
     ? btnFlut
     : (document.querySelector('.btn-meu-pedido-topo') || document.querySelector('#hero-nav-zap'));
-  const badgeEl = flutVisivel
-    ? document.querySelector('#badge-carrinho-flutuante-qtd')
-    : document.querySelector('#badge-carrinho-qtd');
-  const targetEl = (cartBtn && cartBtn.querySelector('.icone-carrinho')) || badgeEl || cartBtn;
+  const targetEl = (cartBtn && cartBtn.querySelector('.icone-carrinho')) || cartBtn;
 
-  let targetX, targetY;
+  let targetX = window.innerWidth - 55;
+  let targetY = 24;
   if (targetEl) {
     const tRect = targetEl.getBoundingClientRect();
     if (tRect.bottom > 0 && tRect.top < window.innerHeight) {
       targetX = tRect.left + tRect.width / 2;
       targetY = tRect.top + tRect.height / 2;
-    } else {
-      // Quando o topo está acima do scroll atual
-      targetX = tRect.left >= 0 && tRect.left <= window.innerWidth
-        ? (tRect.left + tRect.width / 2)
-        : (window.innerWidth - 55);
-      targetY = Math.max(16, tRect.top + tRect.height / 2);
     }
+  }
+
+  const startW = Math.min(95, Math.round(startRect.width * 0.72));
+  const startH = startW;
+  const startX = Math.round(startRect.left + startRect.width / 2 - startW / 2);
+  const startY = Math.round(startRect.top + startRect.height / 2 - startH / 2);
+
+  const flyEl = document.createElement('div');
+  flyEl.className = 'produto-voando-clone';
+  flyEl.setAttribute('aria-hidden', 'true');
+  flyEl.style.width = `${startW}px`;
+  flyEl.style.height = `${startH}px`;
+  flyEl.style.left = `${startX}px`;
+  flyEl.style.top = `${startY}px`;
+
+  let imgSrc = imgOriginal ? (imgOriginal.currentSrc || imgOriginal.src || '') : '';
+  if (!imgSrc && it) imgSrc = it.img || (it.j ? CONFIG.fotosBaseUrl + it.j : '');
+
+  if (imgSrc) {
+    const flyImg = document.createElement('img');
+    flyImg.src = imgSrc;
+    flyImg.alt = '';
+    flyEl.appendChild(flyImg);
   } else {
-    targetX = window.innerWidth - 55;
-    targetY = 24;
+    flyEl.innerHTML = '<span style="font-size:24px">🍨</span>';
   }
 
-  const startCenterX = startX + startW / 2;
-  const startCenterY = startY + startH / 2;
-  const dx = targetX - startCenterX;
-  const dy = targetY - startCenterY;
+  document.body.appendChild(flyEl);
 
-  // Curva parabólica (Bézier quadrática) com elevação no ar
-  const p1x = dx * 0.28;
-  const arcLift = Math.max(75, Math.min(190, Math.abs(dx) * 0.22));
-  const p1y = Math.min(0, dy) - arcLift;
+  const dx = Math.round(targetX - (startX + startW / 2));
+  const dy = Math.round(targetY - (startY + startH / 2));
 
-  // 5. Gera 24 keyframes fluidos acelerados pela GPU
-  const keyframes = [];
-  const totalSteps = 24;
-
-  for (let i = 0; i <= totalSteps; i++) {
-    const t = i / totalSteps;
-    const u = 1 - t;
-    const tt = t * t;
-    const uu = u * u;
-    const u2t = 2 * u * t;
-
-    const curX = uu * 0 + u2t * p1x + tt * dx;
-    const curY = uu * 0 + u2t * p1y + tt * dy;
-
-    // Escala: leve impulso no início e redução gradual até sumir suavemente
-    let curScale;
-    if (t <= 0.14) {
-      curScale = 1.0 + 0.06 * (t / 0.14);
-    } else {
-      curScale = 1.06 - 0.98 * Math.pow((t - 0.14) / 0.86, 1.35);
-    }
-
-    // Rotação sutil durante o voo
-    const curRotate = Math.sin(t * Math.PI) * 14;
-
-    // Opacidade: 100% até 82% do percurso, depois fade-out suave ao entrar no carrinho
-    const curOpacity = t < 0.82 ? 1 : Math.max(0, 1 - (t - 0.82) / 0.18);
-
-    keyframes.push({
-      transform: `translate3d(${curX.toFixed(2)}px, ${curY.toFixed(2)}px, 0) scale(${curScale.toFixed(3)}) rotate(${curRotate.toFixed(2)}deg)`,
-      opacity: curOpacity
-    });
-  }
-
-  const durationMs = 720;
-  let finalizado = false;
-
-  const finalizar = () => {
-    if (finalizado) return;
-    finalizado = true;
-    try { flyEl.remove(); } catch (e) {}
-    if (typeof onComplete === 'function') onComplete();
-  };
+  // 3 Keyframes ultra leves e rápidos acelerados 100% na GPU (Zero travamento)
+  const keyframes = [
+    { transform: 'translate3d(0, 0, 0) scale(1) rotate(0deg)', opacity: 1 },
+    { transform: `translate3d(${Math.round(dx * 0.45)}px, ${Math.round(dy * 0.35 - 45)}px, 0) scale(0.68) rotate(8deg)`, opacity: 0.95, offset: 0.5 },
+    { transform: `translate3d(${dx}px, ${dy}px, 0) scale(0.15) rotate(16deg)`, opacity: 0 }
+  ];
 
   if (typeof flyEl.animate === 'function') {
     const anim = flyEl.animate(keyframes, {
-      duration: durationMs,
-      easing: 'cubic-bezier(0.22, 0.9, 0.35, 1)',
+      duration: 360,
+      easing: 'cubic-bezier(0.2, 0.9, 0.35, 1)',
       fill: 'forwards'
     });
-    anim.onfinish = finalizar;
-    anim.oncancel = finalizar;
+    anim.onfinish = () => {
+      try { flyEl.remove(); } catch (e) {}
+    };
   }
 
-  setTimeout(finalizar, durationMs + 100);
+  setTimeout(() => {
+    try { flyEl.remove(); } catch (e) {}
+  }, 420);
 }
 
 /* ==========================================================
@@ -965,9 +890,6 @@ function atualizarVisibilidadeCarrinhoFlutuante() {
   }
 }
 
-if (typeof window !== 'undefined') {
-  window.addEventListener('scroll', atualizarVisibilidadeCarrinhoFlutuante, { passive: true });
-}
 
 window.abrirCarrinho = function(ev) {
   if (ev && ev.preventDefault) ev.preventDefault();
@@ -1213,43 +1135,37 @@ function adicionarAoPedido(itemIndex, ev) {
   }
 
   salvarCarrinho();
+  atualizarBadgeCarrinho();
 
+  // Efeito pop instantâneo no badge e botão (Zero reflow síncrono, resposta em 0ms)
   const badgeEl = $('#badge-carrinho-qtd');
+  const badgeFlut = $('#badge-carrinho-flutuante-qtd');
   const cartBtn = document.querySelector('.btn-meu-pedido-topo') || document.querySelector('#hero-nav-zap');
+  const btnFlut = document.querySelector('#btn-meu-pedido-flutuante');
 
-  const onChegadaNoCarrinho = () => {
-    atualizarBadgeCarrinho();
-
-    const badgeEl = $('#badge-carrinho-qtd');
-    const badgeFlut = $('#badge-carrinho-flutuante-qtd');
-    const cartBtn = document.querySelector('.btn-meu-pedido-topo') || document.querySelector('#hero-nav-zap');
-    const btnFlut = document.querySelector('#btn-meu-pedido-flutuante');
-
-    [badgeEl, badgeFlut].forEach(el => {
-      if (el) {
-        el.classList.remove('badge-pop');
-        void el.offsetWidth;
-        el.classList.add('badge-pop');
-      }
-    });
-
-    [cartBtn, btnFlut].forEach(el => {
-      if (el) {
-        el.classList.remove('carrinho-pulse');
-        void el.offsetWidth;
-        el.classList.add('carrinho-pulse');
-      }
-    });
-
-    toast(`🛒 ${title} adicionado ao pedido!`);
-
-    const drawer = $('#drawer-carrinho');
-    if (drawer && drawer.classList.contains('aberto')) {
-      renderCarrinho();
+  [badgeEl, badgeFlut].forEach(el => {
+    if (el) {
+      el.classList.remove('badge-pop');
+      requestAnimationFrame(() => el.classList.add('badge-pop'));
     }
-  };
+  });
 
-  animarProdutoAteCarrinho(imgOriginal, it, btn, onChegadaNoCarrinho);
+  [cartBtn, btnFlut].forEach(el => {
+    if (el) {
+      el.classList.remove('carrinho-pulse');
+      requestAnimationFrame(() => el.classList.add('carrinho-pulse'));
+    }
+  });
+
+  toast(`🛒 ${title} adicionado ao pedido!`);
+
+  const drawer = $('#drawer-carrinho');
+  if (drawer && drawer.classList.contains('aberto')) {
+    renderCarrinho();
+  }
+
+  // Animação visual em voo ultra rápida (360ms na GPU)
+  animarProdutoAteCarrinho(imgOriginal, it, btn);
 }
 
 function sincronizarDestaquesCategoria(catReal) {
@@ -3663,13 +3579,23 @@ function setupEvents() {
     }
   });
 
-  let scrollTimer;
+  let scrollTicking = false;
+  let scrollSaveTimer = null;
   window.addEventListener('scroll', () => {
-    if (isRestoringScroll) return;
-    clearTimeout(scrollTimer);
-    scrollTimer = setTimeout(() => {
-      salvarEstadoNavegacao(window.scrollY);
-    }, 80);
+    if (!scrollTicking) {
+      requestAnimationFrame(() => {
+        atualizarVisibilidadeCarrinhoFlutuante();
+        scrollTicking = false;
+      });
+      scrollTicking = true;
+    }
+
+    if (!isRestoringScroll) {
+      clearTimeout(scrollSaveTimer);
+      scrollSaveTimer = setTimeout(() => {
+        salvarEstadoNavegacao(window.scrollY);
+      }, 350);
+    }
   }, { passive: true });
 
   window.addEventListener('beforeunload', () => {
