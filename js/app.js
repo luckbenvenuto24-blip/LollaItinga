@@ -20,8 +20,16 @@ let isRestoringScroll = true;
 let CONFIG = {
   nome: 'Sorveteria Lolla',
   whatsapp: '5544999432158',
-  fotosBaseUrl: 'https://lolla-maringa.vercel.app/cardapios/fotos-v1/'
+  fotosBaseUrl: 'https://lolla-maringa.vercel.app/cardapios/fotos-v1/',
+  pedidoMinimo: 30.00
 };
+
+const PEDIDO_MINIMO_PADRAO = 30.00;
+
+function getPedidoMinimo() {
+  const v = CONFIG && CONFIG.pedidoMinimo;
+  return (typeof v === 'number' && !isNaN(v) && v > 0) ? v : PEDIDO_MINIMO_PADRAO;
+}
 
 const DEFAULT_GALERIA = [
   { img: 'https://images.unsplash.com/photo-1501443762994-82bd5dace89a?auto=format&fit=crop&w=600&q=80', legenda: 'Momentos doces na Lolla' },
@@ -266,11 +274,14 @@ function ensureExtraData() {
   if (D.config && typeof D.config === 'object') {
     if (D.config.nome) CONFIG.nome = D.config.nome;
     if (D.config.whatsapp) CONFIG.whatsapp = D.config.whatsapp;
+    if (typeof D.config.pedidoMinimo === 'number' && D.config.pedidoMinimo > 0) {
+      CONFIG.pedidoMinimo = D.config.pedidoMinimo;
+    }
     try {
       localStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(CONFIG));
     } catch (e) {}
   } else {
-    D.config = { nome: CONFIG.nome, whatsapp: CONFIG.whatsapp };
+    D.config = { nome: CONFIG.nome, whatsapp: CONFIG.whatsapp, pedidoMinimo: getPedidoMinimo() };
   }
   if (!Array.isArray(D.cats)) {
     D.cats = [];
@@ -653,9 +664,9 @@ function card(it, i, itemIndex) {
               🛒 Montar Açaí
             </button>
           ` : `
-            <a class="btn-pedir-zap" href="${link(it)}" target="_blank" rel="noopener" aria-label="Pedir ${esc(it.n)} pelo WhatsApp">
+            <button type="button" class="btn-pedir-zap" onclick="pedirItemWhatsApp(${itemIndex}, event)" aria-label="Pedir ${esc(it.n)} pelo WhatsApp">
               ${ZAP_ICON} Pedir no WhatsApp
-            </a>
+            </button>
             <button type="button" class="btn-pedir-add" onclick="adicionarAoPedido(${itemIndex}, event)" title="Adicionar ao pedido">
               🛒 Adicionar ao pedido
             </button>
@@ -722,9 +733,9 @@ function renderDestaquesMomento() {
                 🛒 Montar Açaí
               </button>
             ` : `
-              <a class="btn-pedir-zap" href="${link(it)}" target="_blank" rel="noopener">
+              <button type="button" class="btn-pedir-zap" onclick="pedirItemWhatsApp(${itemIndex}, event)">
                 ${ZAP_ICON} Pedir no WhatsApp
-              </a>
+              </button>
               <button type="button" class="btn-pedir-add" onclick="adicionarAoPedido(${itemIndex}, event)">
                 🛒 Adicionar ao pedido
               </button>
@@ -952,21 +963,66 @@ function renderCarrinho() {
   const totalEl = $('#carrinho-total-valor');
   const resumoQtdEl = $('#carrinho-resumo-qtd');
   const btnZap = $('#btn-enviar-carrinho-zap');
+  const btnTextoEl = $('#btn-enviar-carrinho-texto');
+  const avisoMinimoEl = $('#carrinho-aviso-minimo');
   if (!corpo) return;
 
   atualizarBadgeCarrinho();
 
   const totalVal = valorTotalCarrinho();
   const totalQtd = totalItensCarrinho();
+  const pedidoMin = getPedidoMinimo();
+  const faltaMinimo = Math.max(0, pedidoMin - totalVal);
+  const bateuMinimo = totalVal >= pedidoMin;
+  const pctProgresso = Math.min(100, Math.round((totalVal / pedidoMin) * 100));
 
   if (totalEl) totalEl.textContent = `R$ ${brl(totalVal)}`;
   if (resumoQtdEl) resumoQtdEl.textContent = totalQtd === 1 ? '1 item' : `${totalQtd} itens`;
+
+  if (avisoMinimoEl) {
+    if (!carrinho || carrinho.length === 0) {
+      avisoMinimoEl.innerHTML = `
+        <div class="meta-minimo-card info">
+          <div class="meta-minimo-topo">
+            <span>🛵 Pedido mínimo para entrega:</span>
+            <strong>R$ ${brl(pedidoMin)}</strong>
+          </div>
+        </div>
+      `;
+    } else if (!bateuMinimo) {
+      avisoMinimoEl.innerHTML = `
+        <div class="meta-minimo-card alerta">
+          <div class="meta-minimo-topo">
+            <span>🛵 Pedido mínimo: <strong>R$ ${brl(pedidoMin)}</strong></span>
+            <span class="meta-minimo-falta">Faltam <strong>R$ ${brl(faltaMinimo)}</strong></span>
+          </div>
+          <div class="meta-minimo-barra-trilha">
+            <div class="meta-minimo-barra-preenchimento" style="width:${pctProgresso}%"></div>
+          </div>
+          <div class="meta-minimo-dica">Adicione mais R$ ${brl(faltaMinimo)} para liberar o envio pelo WhatsApp!</div>
+        </div>
+      `;
+    } else {
+      avisoMinimoEl.innerHTML = `
+        <div class="meta-minimo-card sucesso">
+          <div class="meta-minimo-topo">
+            <span>🎉 Pedido mínimo atingido!</span>
+            <span class="meta-minimo-ok">Liberado p/ WhatsApp</span>
+          </div>
+          <div class="meta-minimo-barra-trilha">
+            <div class="meta-minimo-barra-preenchimento sucesso" style="width:100%"></div>
+          </div>
+        </div>
+      `;
+    }
+  }
 
   if (!carrinho || carrinho.length === 0) {
     if (btnZap) {
       btnZap.disabled = true;
       btnZap.style.opacity = '0.5';
       btnZap.style.pointerEvents = 'none';
+      if (btnTextoEl) btnTextoEl.textContent = 'Adicione itens ao pedido';
     }
     corpo.innerHTML = `
       <div class="carrinho-vazio-estado">
@@ -982,9 +1038,23 @@ function renderCarrinho() {
   }
 
   if (btnZap) {
-    btnZap.disabled = false;
-    btnZap.style.opacity = '1';
-    btnZap.style.pointerEvents = 'auto';
+    if (!bateuMinimo) {
+      btnZap.disabled = false;
+      btnZap.style.opacity = '0.7';
+      btnZap.style.background = '#8B263E';
+      btnZap.style.boxShadow = 'none';
+      btnZap.style.cursor = 'not-allowed';
+      btnZap.style.pointerEvents = 'auto';
+      if (btnTextoEl) btnTextoEl.textContent = `Faltam R$ ${brl(faltaMinimo)} (Mínimo R$ ${brl(pedidoMin)})`;
+    } else {
+      btnZap.disabled = false;
+      btnZap.style.opacity = '1';
+      btnZap.style.background = '#008A45';
+      btnZap.style.boxShadow = '0 6px 18px rgba(0,138,69,0.3)';
+      btnZap.style.cursor = 'pointer';
+      btnZap.style.pointerEvents = 'auto';
+      if (btnTextoEl) btnTextoEl.textContent = 'Enviar Pedido para a Empresa';
+    }
   }
 
   corpo.innerHTML = carrinho.map((item, idx) => {
@@ -1045,6 +1115,14 @@ window.enviarPedidoWhatsApp = function() {
     return;
   }
 
+  const totalVal = valorTotalCarrinho();
+  const pedidoMin = getPedidoMinimo();
+  if (totalVal < pedidoMin) {
+    const falta = pedidoMin - totalVal;
+    toast(`⚠️ O pedido mínimo para entrega é de R$ ${brl(pedidoMin)}. Faltam apenas R$ ${brl(falta)}! Adicione mais itens para continuar.`);
+    return;
+  }
+
   const itensTexto = carrinho.map((item, i) => {
     const unit = brl(item.preco);
     const sub = brl(item.preco * item.qtd);
@@ -1081,6 +1159,28 @@ window.enviarPedidoWhatsApp = function() {
 
   const zapUrl = `https://wa.me/${CONFIG.whatsapp}?text=${encodeURIComponent(msg)}`;
   window.open(zapUrl, '_blank', 'noopener');
+};
+
+window.pedirItemWhatsApp = function(itemIndex, ev) {
+  if (ev) {
+    ev.preventDefault();
+    ev.stopPropagation();
+  }
+  const it = D && D.itens && D.itens[itemIndex];
+  if (!it) return;
+
+  adicionarAoPedido(itemIndex, ev);
+
+  const totalVal = valorTotalCarrinho();
+  const pedidoMin = getPedidoMinimo();
+
+  if (totalVal < pedidoMin) {
+    const falta = pedidoMin - totalVal;
+    toast(`🛍️ "${it.n}" adicionado! Pedido mínimo para entrega é de R$ ${brl(pedidoMin)} (faltam R$ ${brl(falta)}).`);
+  } else {
+    toast(`✅ "${it.n}" adicionado! Pedido mínimo atingido.`);
+  }
+  abrirCarrinho();
 };
 
 function adicionarAoPedido(itemIndex, ev) {
@@ -2951,43 +3051,15 @@ window.confirmarAdicionarAcaiCarrinho = function (ev) {
 };
 
 window.confirmarPedirAcaiZap = function () {
-  const cfg = D.acaiCustomizavel || DEFAULT_ACAI_CONFIG;
-  const tam = (cfg.tamanhos || []).find(t => t.id === acaiModalState.tamanho) || { nome: 'Copo 500ml' };
-  const base = (cfg.bases || []).find(b => b.id === acaiModalState.baseId) || { nome: 'Açaí Tradicional' };
-  
-  const acompNomes = Array.from(acaiModalState.acompanhamentos)
-    .map(id => {
-      const a = (cfg.acompanhamentos || []).find(it => it.id === id);
-      return a ? `${a.nome} (+ R$ ${brl(a.preco || 4)})` : null;
-    })
-    .filter(Boolean);
+  confirmarAdicionarAcaiCarrinho();
 
-  const cremeNomes = Array.from(acaiModalState.cremes)
-    .map(id => {
-      const c = (cfg.cremes || []).find(it => it.id === id);
-      return c ? `${c.nome} (+ R$ ${brl(c.preco || 5)})` : null;
-    })
-    .filter(Boolean);
-
-  const total = brl(calcularPrecoAcaiTotal());
-
-  let msg = `🍧 *PEDIDO DE AÇAÍ PERSONALIZADO - ${CONFIG.nome || 'SORVETERIA LOLLA'}* 🍧\n\n` +
-            `Olá! Gostaria de pedir o seguinte Açaí Montado:\n\n` +
-            `🥤 *Tamanho:* ${tam.nome}\n` +
-            `🍧 *Base:* ${base.nome}\n`;
-
-  if (acompNomes.length) {
-    msg += `🍓 *Acompanhamentos:* ${acompNomes.join(', ')}\n`;
+  const totalVal = valorTotalCarrinho();
+  const pedidoMin = getPedidoMinimo();
+  if (totalVal < pedidoMin) {
+    const falta = pedidoMin - totalVal;
+    toast(`🍧 Açaí adicionado! Pedido mínimo para entrega é de R$ ${brl(pedidoMin)} (faltam R$ ${brl(falta)}).`);
   }
-  if (cremeNomes.length) {
-    msg += `🍪 *Cremes Especiais:* ${cremeNomes.join(', ')}\n`;
-  }
-
-  msg += `\n💰 *VALOR TOTAL: R$ ${total}*`;
-
-  fecharModalMontarAcai();
-  const urlZap = `https://wa.me/${CONFIG.whatsapp}?text=` + encodeURIComponent(msg);
-  window.open(urlZap, '_blank');
+  abrirCarrinho();
 };
 
 /* ==========================================================
@@ -3703,6 +3775,9 @@ window.abrirModalConfig = function () {
   if (!isAdmin) return;
   $('#cfg-nome').value = CONFIG.nome || '';
   $('#cfg-zap').value = CONFIG.whatsapp || '';
+  if ($('#cfg-pedido-minimo')) {
+    $('#cfg-pedido-minimo').value = getPedidoMinimo().toFixed(2);
+  }
   $('#modal-config').classList.add('aberto');
 };
 
@@ -3715,14 +3790,22 @@ window.salvarConfigLoja = async function (e) {
   CONFIG.nome = $('#cfg-nome').value.trim() || 'Sorveteria Lolla';
   CONFIG.whatsapp = $('#cfg-zap').value.replace(/\D/g, '') || '5544999432158';
 
+  if ($('#cfg-pedido-minimo')) {
+    const minVal = parseFloat($('#cfg-pedido-minimo').value);
+    if (!isNaN(minVal) && minVal >= 0) {
+      CONFIG.pedidoMinimo = minVal;
+    }
+  }
+
   localStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(CONFIG));
   localStorage.setItem('lolla_store_config_v2', JSON.stringify(CONFIG));
   if (D) {
-    D.config = { nome: CONFIG.nome, whatsapp: CONFIG.whatsapp };
+    D.config = { nome: CONFIG.nome, whatsapp: CONFIG.whatsapp, pedidoMinimo: getPedidoMinimo() };
   }
   fecharModalConfig();
+  renderCarrinho();
   await salvarCardapio(false);
-  toast('⚙️ Dados da loja e WhatsApp salvos permanentemente!');
+  toast('⚙️ Dados da loja e pedido mínimo salvos permanentemente!');
 };
 
 window.restaurarPadrao = async function () {
