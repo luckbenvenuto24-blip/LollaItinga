@@ -2143,3 +2143,701 @@ body.admin-autenticado .secao-admin-bar{display:flex}
   flex-wrap: wrap;
 }
 
+/* ==========================================================
+ * SISTEMA COMPLETO DE PEDIDOS, PAINEL DO DONO E ENTREGADORES
+ * ========================================================== */
+
+/* 1. Indicador de Status da Loja no Topo */
+.status-loja-topo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  transition: all .2s ease;
+}
+.status-loja-topo.aberta {
+  background: rgba(0, 168, 89, 0.2);
+  border: 1.5px solid #52C41A;
+  color: #F6FFED;
+}
+.status-loja-topo.fechada {
+  background: rgba(207, 19, 34, 0.25);
+  border: 1.5px solid #FFA39E;
+  color: #FFF1F0;
+}
+.status-ponto {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.status-loja-topo.aberta .status-ponto {
+  background: #52C41A;
+  box-shadow: 0 0 8px #52C41A;
+}
+.status-loja-topo.fechada .status-ponto {
+  background: #FF4D4F;
+  box-shadow: 0 0 8px #FF4D4F;
+}
+
+/* Botões do Topo para Clientes */
+.botoes-topo-cliente {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.btn-topo-acao {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,255,255,0.14);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.28);
+  padding: 7px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all .2s ease;
+}
+.btn-topo-acao:hover {
+  background: rgba(255,255,255,0.25);
+  transform: translateY(-1px);
+}
+
+/* 2. Botão de Finalizar Pedido no Site (Carrinho) */
+.btn-finalizar-site {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 14px 18px;
+  background: linear-gradient(135deg, #85060F 0%, #B81424 100%);
+  color: #fff;
+  border: none;
+  border-radius: 16px;
+  font-family: 'Baloo 2', sans-serif;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(133, 6, 15, 0.28);
+  transition: all .2s ease;
+  margin-top: 4px;
+}
+.btn-finalizar-site:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(133, 6, 15, 0.38);
+}
+.btn-finalizar-site:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* 3. Modal de Checkout do Cliente */
+.checkout-grade {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+@media (max-width: 640px) {
+  .checkout-grade {
+    grid-template-columns: 1fr;
+  }
+}
+.checkout-secao-titulo {
+  font-family: 'Baloo 2', sans-serif;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--magenta);
+  margin: 14px 0 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1.5px solid var(--borda);
+  padding-bottom: 4px;
+}
+.forma-pagamento-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+.forma-pag-card {
+  border: 1.5px solid var(--borda);
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+  cursor: pointer;
+  background: #fff;
+  transition: all .18s;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.forma-pag-card.ativo {
+  border-color: var(--magenta);
+  background: #FFF0EB;
+  color: var(--magenta);
+  box-shadow: 0 0 0 2px rgba(133, 6, 15, 0.15);
+}
+.forma-pag-card .icone {
+  font-size: 22px;
+}
+.pix-box-info {
+  background: #F0FBF5;
+  border: 1.5px solid #B7EB8F;
+  border-radius: 14px;
+  padding: 12px 14px;
+  margin-top: 10px;
+  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pix-chave-destaque {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  border: 1px dashed #52C41A;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-weight: 800;
+  color: #135200;
+  word-break: break-all;
+}
+.btn-copiar-pix {
+  background: #52C41A;
+  color: #fff;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn-copiar-pix:hover {
+  background: #389E0D;
+}
+.resumo-valores-box {
+  background: #FFFBF8;
+  border: 1.5px solid var(--borda);
+  border-radius: 14px;
+  padding: 12px 16px;
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+}
+.resumo-linha {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--tinta-fraca);
+}
+.resumo-linha.total {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--magenta);
+  border-top: 1px dashed var(--borda);
+  padding-top: 6px;
+  margin-top: 4px;
+}
+
+/* 4. Timeline de Acompanhamento do Pedido (7 Status) */
+.timeline-pedido-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 16px 0;
+  position: relative;
+}
+.timeline-passo {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  position: relative;
+}
+.timeline-passo::before {
+  content: '';
+  position: absolute;
+  left: 17px;
+  top: 34px;
+  bottom: -14px;
+  width: 2px;
+  background: #E8D8CF;
+  z-index: 1;
+}
+.timeline-passo:last-child::before {
+  display: none;
+}
+.timeline-passo.concluido::before {
+  background: #52C41A;
+}
+.timeline-passo.ativo::before {
+  background: linear-gradient(180deg, #52C41A 0%, #D9D9D9 100%);
+}
+.timeline-circulo {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  background: #F5EFEB;
+  border: 2px solid #D5C2B8;
+  color: #8C7B73;
+  z-index: 2;
+  flex-shrink: 0;
+  transition: all .25s ease;
+}
+.timeline-passo.concluido .timeline-circulo {
+  background: #52C41A;
+  border-color: #389E0D;
+  color: #fff;
+}
+.timeline-passo.ativo .timeline-circulo {
+  background: #85060F;
+  border-color: #A8101E;
+  color: #fff;
+  transform: scale(1.15);
+  box-shadow: 0 0 12px rgba(133, 6, 15, 0.4);
+}
+.timeline-passo.cancelado .timeline-circulo {
+  background: #FF4D4F;
+  border-color: #CF1322;
+  color: #fff;
+}
+.timeline-texto {
+  display: flex;
+  flex-direction: column;
+  padding-top: 4px;
+}
+.timeline-titulo {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--tinta);
+}
+.timeline-passo.ativo .timeline-titulo {
+  color: var(--magenta);
+  font-size: 15px;
+}
+.timeline-desc {
+  font-size: 12px;
+  color: var(--tinta-fraca);
+  margin-top: 2px;
+}
+
+/* 5. Painel do Dono Overlay / View */
+.painel-completo-overlay {
+  position: fixed;
+  inset: 0;
+  background: #FAF4EE;
+  z-index: 9999;
+  display: none;
+  flex-direction: column;
+  overflow-y: auto;
+}
+.painel-completo-overlay.aberto {
+  display: flex;
+}
+.painel-topo-bar {
+  background: linear-gradient(180deg, #7A050E 0%, #63030A 100%);
+  color: #fff;
+  padding: 12px clamp(16px, 3vw, 36px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.painel-topo-titulo-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.painel-topo-titulo {
+  font-family: 'Baloo 2', sans-serif;
+  font-size: 18px;
+  font-weight: 800;
+  margin: 0;
+}
+.painel-topo-controles {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.btn-painel-icone {
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.3);
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all .2s;
+}
+.btn-painel-icone:hover {
+  background: rgba(255,255,255,0.25);
+}
+.painel-abas-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #FFF;
+  border-bottom: 1.5px solid var(--borda);
+  padding: 8px clamp(16px, 3vw, 36px);
+  overflow-x: auto;
+  position: sticky;
+  top: 61px;
+  z-index: 90;
+}
+.painel-aba-btn {
+  background: transparent;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-family: 'Baloo 2', sans-serif;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--tinta-fraca);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all .16s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.painel-aba-btn.ativo {
+  background: var(--magenta);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(133, 6, 15, 0.25);
+}
+.painel-conteudo-corpo {
+  padding: 20px clamp(16px, 3vw, 36px);
+  max-width: 1440px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* Indicadores / KPI Cards do Dashboard */
+.kpi-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.kpi-card {
+  background: #fff;
+  border: 1.5px solid var(--borda);
+  border-radius: 18px;
+  padding: 16px 18px;
+  box-shadow: var(--sombra);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: transform .2s;
+}
+.kpi-card:hover {
+  transform: translateY(-2px);
+}
+.kpi-card-cabeca {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--tinta-fraca);
+  text-transform: uppercase;
+}
+.kpi-card-valor {
+  font-family: 'Baloo 2', sans-serif;
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--tinta);
+  line-height: 1.1;
+}
+.kpi-card-valor.destaque {
+  color: var(--magenta);
+}
+.kpi-card-valor.verde {
+  color: #008A45;
+}
+.kpi-card-sub {
+  font-size: 11.5px;
+  color: var(--tinta-fraca);
+}
+
+/* Kanban / Central de Pedidos */
+.filtro-pedidos-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.pedidos-status-tabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+.status-pill-btn {
+  background: #fff;
+  border: 1.5px solid var(--borda);
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--tinta-fraca);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all .16s;
+}
+.status-pill-btn.ativo {
+  background: var(--magenta);
+  color: #fff;
+  border-color: var(--magenta);
+}
+.pedidos-lista-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 14px;
+}
+.comanda-card {
+  background: #fff;
+  border: 1.5px solid var(--borda);
+  border-radius: 18px;
+  padding: 16px;
+  box-shadow: var(--sombra);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: relative;
+  transition: all .2s;
+}
+.comanda-card:hover {
+  box-shadow: var(--sombra-fte);
+}
+.comanda-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px dashed var(--borda);
+  padding-bottom: 8px;
+}
+.comanda-numero {
+  font-family: 'Baloo 2', sans-serif;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--magenta);
+}
+.comanda-status-badge {
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.comanda-status-badge.RECEBIDO { background:#FFF0EB; color:#85060F; border:1px solid #FFA39E; }
+.comanda-status-badge.ACEITO { background:#E6F7FF; color:#0050B3; border:1px solid #91D5FF; }
+.comanda-status-badge.EM_PREPARACAO { background:#FFF7E6; color:#D46B08; border:1px solid #FFD591; }
+.comanda-status-badge.AGUARDANDO_ENTREGADOR { background:#F9F0FF; color:#531DAB; border:1px solid #D3ADF7; }
+.comanda-status-badge.ENTREGADOR_A_CAMINHO { background:#E6FFFB; color:#006D75; border:1px solid #87E8DE; }
+.comanda-status-badge.SAIU_ENTREGA { background:#FCFFE6; color:#5B8C00; border:1px solid #EAFF8F; }
+.comanda-status-badge.ENTREGUE { background:#F6FFED; color:#237804; border:1px solid #B7EB8F; }
+.comanda-status-badge.CANCELADO { background:#FFF1F0; color:#CF1322; border:1px solid #FFA39E; }
+
+.comanda-corpo-itens {
+  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.comanda-item-linha {
+  display: flex;
+  justify-content: space-between;
+}
+.comanda-acoes-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+.btn-comanda-acao {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 12.5px;
+  font-weight: 800;
+  border: none;
+  cursor: pointer;
+  text-align: center;
+  transition: all .16s;
+}
+.btn-comanda-acao.primario {
+  background: var(--magenta);
+  color: #fff;
+}
+.btn-comanda-acao.secundario {
+  background: #F5EFEB;
+  color: var(--tinta);
+  border: 1px solid var(--borda);
+}
+.btn-comanda-acao.verde {
+  background: #008A45;
+  color: #fff;
+}
+.btn-comanda-acao.perigo {
+  background: #FFF1F0;
+  color: #CF1322;
+  border: 1px solid #FFA39E;
+}
+
+/* 6. Painel do Entregador (Mobile First) */
+.entregador-status-bar {
+  background: #fff;
+  border-radius: 18px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: var(--sombra);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.btn-toggle-online {
+  padding: 10px 20px;
+  border-radius: 999px;
+  font-family: 'Baloo 2', sans-serif;
+  font-size: 15px;
+  font-weight: 800;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all .2s;
+}
+.btn-toggle-online.online {
+  background: #52C41A;
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(82, 196, 26, 0.4);
+}
+.btn-toggle-online.offline {
+  background: #FF4D4F;
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(255, 77, 79, 0.4);
+}
+.chamada-motoboy-card {
+  background: #FFF9E6;
+  border: 2px solid #FAAD14;
+  border-radius: 18px;
+  padding: 16px;
+  margin-bottom: 14px;
+  box-shadow: 0 6px 20px rgba(250, 173, 20, 0.25);
+  animation: pulsarChamada 1.5s infinite alternate;
+}
+@keyframes pulsarChamada {
+  from { transform: scale(1); }
+  to { transform: scale(1.015); }
+}
+
+/* Notificação Sonora / Visual no Painel */
+.banner-alerta-novo-pedido {
+  position: fixed;
+  top: 76px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #85060F;
+  color: #fff;
+  padding: 14px 24px;
+  border-radius: 999px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.35);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-weight: 800;
+  font-size: 14px;
+  animation: slideDownAlerta .3s cubic-bezier(.16,1,.3,1);
+}
+@keyframes slideDownAlerta {
+  from { transform: translate(-50%, -40px); opacity: 0; }
+  to { transform: translate(-50%, 0); opacity: 1; }
+}
+
+/* 7. Impressão Térmica de Comandas (@media print) */
+#comanda-impressao {
+  display: none;
+}
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+  #comanda-impressao, #comanda-impressao * {
+    visibility: visible !important;
+  }
+  #comanda-impressao {
+    display: block !important;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 80mm;
+    margin: 0;
+    padding: 10px;
+    background: #fff;
+    color: #000;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 13px;
+    line-height: 1.35;
+  }
+  .comanda-print-separador {
+    border-top: 1px dashed #000;
+    margin: 8px 0;
+  }
+  .comanda-print-centro {
+    text-align: center;
+  }
+  .comanda-print-titulo {
+    font-size: 18px;
+    font-weight: 900;
+  }
+  .comanda-print-numero {
+    font-size: 22px;
+    font-weight: 900;
+    border: 2px solid #000;
+    padding: 4px;
+    margin: 6px 0;
+    display: inline-block;
+  }
+  .comanda-print-item {
+    margin-bottom: 6px;
+  }
+}
+
+

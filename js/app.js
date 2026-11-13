@@ -4239,7 +4239,1801 @@ async function init() {
       abrirModalLogin();
     }
   }
+
+  // Inicialização do Sistema Operacional (Status Loja, Eventos e Rotas)
+  carregarStatusOperacaoLoja();
+  iniciarEscutaEventos();
+  verificarRotasIniciais();
 }
+
+/* ==========================================================
+ * SISTEMA COMPLETO: CLIENTE, DONO, ENTREGADOR E GESTÃO DE COMANDAS
+ * ========================================================== */
+
+let donoToken = localStorage.getItem('lolla_dono_token') || sessionStorage.getItem('lolla_dono_token') || '';
+let clienteToken = localStorage.getItem('lolla_cliente_token') || '';
+let clienteAtual = null;
+let motoboyToken = localStorage.getItem('lolla_motoboy_token') || '';
+let motoboyAtual = null;
+let operacaoConfig = null;
+let pedidoRastreioAtual = null;
+let somDonoAtivo = localStorage.getItem('lolla_som_dono') !== 'false';
+let audioCtx = null;
+let pollingEventosAtivo = false;
+let ultimoTimestampEventos = Date.now();
+let statusFiltroDono = 'TODOS';
+let pedidosCacheDono = [];
+
+// Síntese de Áudio com Web Audio API (Chime e Alertas Nativos Confiáveis)
+function getAudioContext() {
+  if (!audioCtx) {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (AudioContextClass) audioCtx = new AudioContextClass();
+  }
+  if (audioCtx && audioCtx.state === 'suspended') {
+    audioCtx.resume().catch(() => {});
+  }
+  return audioCtx;
+}
+
+window.tocarAlertaNovoPedido = function() {
+  if (!somDonoAtivo) return;
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    
+    // Primeiro tom: D5 (587.33 Hz)
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(587.33, now);
+    gain1.gain.setValueAtTime(0.35, now);
+    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+    osc1.connect(gain1);
+    gain1.connect(ctx.destination);
+    osc1.start(now);
+    osc1.stop(now + 0.45);
+
+    // Segundo tom: A5 (880 Hz)
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(880, now + 0.22);
+    gain2.gain.setValueAtTime(0.4, now + 0.22);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.85);
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    osc2.start(now + 0.22);
+    osc2.stop(now + 0.85);
+  } catch (e) {
+    console.warn('Erro ao reproduzir alerta sonoro:', e);
+  }
+};
+
+window.tocarAlertaChamada = function() {
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    [0, 0.16, 0.32].forEach((offset, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(750 + idx * 120, now + offset);
+      gain.gain.setValueAtTime(0.3, now + offset);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + offset + 0.14);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now + offset);
+      osc.stop(now + offset + 0.15);
+    });
+  } catch (e) {}
+};
+
+window.testarSomAudio = function() {
+  getAudioContext();
+  tocarAlertaNovoPedido();
+  toast('🔔 Som de alerta testado com sucesso!');
+};
+
+window.toggleSomDono = function() {
+  somDonoAtivo = !somDonoAtivo;
+  localStorage.setItem('lolla_som_dono', somDonoAtivo ? 'true' : 'false');
+  const icone = $('#icone-som-dono');
+  const btn = $('#btn-toggle-som-dono');
+  if (icone) icone.textContent = somDonoAtivo ? '🔔' : '🔕';
+  if (btn) btn.querySelector('span:last-child').textContent = somDonoAtivo ? 'Som Ativo' : 'Silencioso';
+  toast(somDonoAtivo ? '🔔 Alertas sonoros ativados!' : '🔕 Alertas sonoros silenciados.');
+};
+
+// 1. Carregamento de Status da Loja e Bairros
+async function carregarStatusOperacaoLoja() {
+  try {
+    const res = await fetch('/api/config/operacao');
+    if (!res.ok) return;
+    operacaoConfig = await res.json();
+
+    const statusEl = $('#status-loja-topo');
+    const textoEl = $('#status-loja-texto');
+    if (statusEl && textoEl) {
+      if (operacaoConfig.lojaAberta) {
+        statusEl.className = 'status-loja-topo aberta';
+        textoEl.textContent = 'Aberta agora · Atendimento normal';
+      } else {
+        statusEl.className = 'status-loja-topo fechada';
+        textoEl.textContent = operacaoConfig.lojaStatusTexto || 'Fechada no momento';
+      }
+    }
+  } catch (e) {
+    console.warn('Não foi possível obter dados operacionais:', e);
+  }
+}
+
+// 2. Barramento de Eventos em Tempo Real (Long-Polling Contínuo)
+async function iniciarEscutaEventos() {
+  if (pollingEventosAtivo) return;
+  pollingEventosAtivo = true;
+
+  while (pollingEventosAtivo) {
+    try {
+      let role = 'cliente';
+      let userId = '';
+      if (donoToken) role = 'dono';
+      else if (motoboyToken) {
+        role = 'entregador';
+        userId = motoboyAtual ? motoboyAtual.id : '';
+      }
+
+      const res = await fetch(`/api/events/poll?since=${ultimoTimestampEventos}&role=${role}&userId=${userId}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.timestamp) ultimoTimestampEventos = data.timestamp;
+        if (Array.isArray(data.events) && data.events.length > 0) {
+          for (const ev of data.events) {
+            tratarEventoRecebido(ev);
+          }
+        }
+      } else {
+        await new Promise(r => setTimeout(r, 4000));
+      }
+    } catch (e) {
+      await new Promise(r => setTimeout(r, 4000));
+    }
+  }
+}
+
+function tratarEventoRecebido(ev) {
+  if (ev.type === 'novo_pedido') {
+    tocarAlertaNovoPedido();
+    const banner = $('#banner-novo-pedido-dono');
+    const bannerTxt = $('#banner-novo-pedido-texto');
+    if (banner && bannerTxt) {
+      bannerTxt.textContent = `Comanda #${ev.data.numero} · ${ev.data.cliente_nome} (${ev.data.bairro}) · R$ ${brl(ev.data.total)}`;
+      banner.style.display = 'flex';
+      banner.dataset.pedidoId = ev.data.id;
+    }
+    toast(`🔔 Novo Pedido Recebido! Comanda #${ev.data.numero} - R$ ${brl(ev.data.total)}`);
+    if ($('#painel-dono-overlay').classList.contains('aberto')) {
+      carregarDashboardDono();
+      carregarPedidosDono();
+    }
+  } else if (ev.type === 'pedido_status_atualizado' || ev.type === 'etapa_entrega_atualizada' || ev.type === 'pedido_cancelado') {
+    if (pedidoRastreioAtual && (pedidoRastreioAtual.id === ev.data.id || pedidoRastreioAtual.id === ev.data.pedidoId)) {
+      abrirRastreamentoPedido(pedidoRastreioAtual.id, pedidoRastreioAtual.codigo_rastreio, true);
+    }
+    if ($('#painel-dono-overlay').classList.contains('aberto')) {
+      carregarPedidosDono();
+      carregarDashboardDono();
+    }
+    if ($('#painel-entregador-overlay').classList.contains('aberto')) {
+      carregarChamadasMotoboy();
+    }
+  } else if (ev.type === 'nova_chamada_entrega') {
+    tocarAlertaChamada();
+    toast(`🛵 Nova corrida disponível! Bairro: ${ev.data.bairro} · R$ ${brl(ev.data.valor_remuneracao)}`);
+    if ($('#painel-entregador-overlay').classList.contains('aberto')) {
+      carregarChamadasMotoboy();
+    }
+  } else if (ev.type === 'chamada_aceita' || ev.type === 'chamada_encerrada') {
+    if ($('#painel-entregador-overlay').classList.contains('aberto')) {
+      carregarChamadasMotoboy();
+    }
+    if ($('#painel-dono-overlay').classList.contains('aberto')) {
+      carregarPedidosDono();
+    }
+  }
+}
+
+window.abrirComandaDoBanner = function() {
+  const banner = $('#banner-novo-pedido-dono');
+  if (!banner || !banner.dataset.pedidoId) return;
+  banner.style.display = 'none';
+  alternarAbaDono('pedidos');
+};
+
+// 3. Seletor de Acessos dos 4 Perfis
+window.abrirSeletorAcesso = function() {
+  $('#modal-seletor-acesso').classList.add('aberto');
+};
+window.fecharSeletorAcesso = function() {
+  $('#modal-seletor-acesso').classList.remove('aberto');
+};
+
+// 4. Fluxo de Checkout Direto no Site para Clientes
+window.iniciarCheckoutSite = function() {
+  fecharCarrinho();
+
+  if (operacaoConfig && !operacaoConfig.lojaAberta) {
+    alert(`⚠️ A Sorveteria Lolla está fechada no momento (${operacaoConfig.lojaStatusTexto || ''}). Os pedidos imediatos ficam pausados.`);
+    return;
+  }
+
+  const subtotal = valorTotalCarrinho();
+  const pedidoMin = getPedidoMinimo();
+  if (subtotal < pedidoMin) {
+    const falta = pedidoMin - subtotal;
+    alert(`⚠️ O pedido mínimo é de R$ ${brl(pedidoMin)}. Faltam R$ ${brl(falta)} em produtos no seu carrinho.`);
+    abrirCarrinho();
+    return;
+  }
+
+  // Preenche dados se cliente estiver logado
+  if (clienteAtual) {
+    $('#chk-nome').value = clienteAtual.nome || '';
+    $('#chk-telefone').value = clienteAtual.telefone || '';
+    if (clienteAtual.enderecos && clienteAtual.enderecos[0]) {
+      const e = clienteAtual.enderecos[0];
+      if ($('#chk-rua')) $('#chk-rua').value = e.rua || '';
+      if ($('#chk-numero')) $('#chk-numero').value = e.numero || '';
+      if ($('#chk-comp')) $('#chk-comp').value = e.complemento || '';
+      if ($('#chk-ref')) $('#chk-ref').value = e.referencia || '';
+      if ($('#chk-cep')) $('#chk-cep').value = e.cep || '';
+    }
+  }
+
+  // Preenche select de bairros
+  const selectBairro = $('#chk-bairro');
+  if (selectBairro && operacaoConfig && Array.isArray(operacaoConfig.bairros)) {
+    selectBairro.innerHTML = '<option value="">Selecione o seu bairro...</option>' +
+      operacaoConfig.bairros.map(b => `<option value="${esc(b.nome)}" data-taxa="${b.taxa_cliente}" data-tempo="${esc(b.tempo_estimado || '')}">${esc(b.nome)} - R$ ${brl(b.taxa_cliente)} (${esc(b.tempo_estimado || '30-50 min')})</option>`).join('');
+  }
+
+  // Configuração das formas de pagamento disponíveis
+  if (operacaoConfig && operacaoConfig.pagamento) {
+    if (operacaoConfig.pagamento.pix && operacaoConfig.pagamento.pix.ativo) {
+      $('#chk-pix-chave').textContent = operacaoConfig.pagamento.pix.chave || '5547974003728';
+      $('#chk-pix-titular').textContent = operacaoConfig.pagamento.pix.titular || 'Sorveteria Lolla';
+      $('#chk-pix-banco').textContent = operacaoConfig.pagamento.pix.instituicao || 'Banco Digital';
+    }
+    const cardCartao = $('#card-pag-cartao');
+    if (cardCartao) {
+      cardCartao.style.display = (operacaoConfig.pagamento.cartao_entrega && operacaoConfig.pagamento.cartao_entrega.ativo) ? 'flex' : 'none';
+    }
+  }
+
+  selecionarFormaPagamento('pix');
+  atualizarValoresResumoCheckout();
+  $('#modal-checkout').classList.add('aberto');
+};
+
+window.fecharModalCheckout = function() {
+  $('#modal-checkout').classList.remove('aberto');
+};
+
+let formaPagamentoCheckout = 'pix';
+window.selecionarFormaPagamento = function(forma) {
+  formaPagamentoCheckout = forma;
+  const cards = document.querySelectorAll('.forma-pag-card');
+  cards.forEach(c => c.classList.remove('ativo'));
+
+  const cardAtivo = $(`#card-pag-${forma === 'cartao_entrega' ? 'cartao' : forma}`);
+  if (cardAtivo) cardAtivo.classList.add('ativo');
+
+  $('#box-pag-pix').style.display = forma === 'pix' ? 'flex' : 'none';
+  $('#box-pag-dinheiro').style.display = forma === 'dinheiro' ? 'block' : 'none';
+  $('#box-pag-cartao').style.display = forma === 'cartao_entrega' ? 'block' : 'none';
+};
+
+window.copiarChavePixCheckout = function() {
+  const chave = $('#chk-pix-chave').textContent.trim();
+  navigator.clipboard.writeText(chave).then(() => {
+    toast('✅ Chave PIX copiada para a área de transferência!');
+  }).catch(() => {
+    toast('Chave PIX: ' + chave);
+  });
+};
+
+window.toggleTrocoCheckout = function(precisa) {
+  $('#wrap-campo-troco').style.display = precisa ? 'block' : 'none';
+  if (!precisa) {
+    $('#chk-troco-para').value = '';
+    $('#chk-troco-aviso').textContent = '';
+  }
+};
+
+window.calcularTrocoCheckout = function(valStr) {
+  const val = parseFloat(valStr) || 0;
+  const total = calcularTotalPedidoAtual();
+  const aviso = $('#chk-troco-aviso');
+  if (val > total) {
+    aviso.textContent = `Troco a devolver: R$ ${brl(val - total)}`;
+    aviso.style.color = '#008A45';
+  } else if (val > 0) {
+    aviso.textContent = `⚠️ O valor do troco deve ser maior que o total (R$ ${brl(total)})`;
+    aviso.style.color = '#CF1322';
+  } else {
+    aviso.textContent = '';
+  }
+};
+
+window.atualizarTaxaBairroCheckout = function() {
+  const select = $('#chk-bairro');
+  const opt = select.selectedOptions[0];
+  const infoEl = $('#chk-bairro-info');
+  if (opt && opt.dataset.taxa) {
+    infoEl.textContent = `✓ Taxa de Entrega: R$ ${brl(parseFloat(opt.dataset.taxa))} · Estimativa: ${opt.dataset.tempo || '40 min'}`;
+  } else {
+    infoEl.textContent = '';
+  }
+  atualizarValoresResumoCheckout();
+};
+
+function calcularTotalPedidoAtual() {
+  const subtotal = valorTotalCarrinho();
+  const select = $('#chk-bairro');
+  const opt = select ? select.selectedOptions[0] : null;
+  const taxa = opt && opt.dataset.taxa ? parseFloat(opt.dataset.taxa) : 0;
+  return subtotal + taxa;
+}
+
+function atualizarValoresResumoCheckout() {
+  const subtotal = valorTotalCarrinho();
+  const select = $('#chk-bairro');
+  const opt = select ? select.selectedOptions[0] : null;
+  const taxa = opt && opt.dataset.taxa ? parseFloat(opt.dataset.taxa) : 0;
+  const bairroNome = opt && opt.value ? opt.value : 'Selecione';
+
+  $('#chk-resumo-subtotal').textContent = `R$ ${brl(subtotal)}`;
+  $('#chk-resumo-bairro-nome').textContent = bairroNome;
+  $('#chk-resumo-taxa').textContent = `R$ ${brl(taxa)}`;
+  $('#chk-resumo-total').textContent = `R$ ${brl(subtotal + taxa)}`;
+}
+
+window.buscarCepViaCep = async function() {
+  const cep = ($('#chk-cep').value || '').replace(/\D/g, '');
+  if (cep.length !== 8) {
+    toast('⚠️ Digite um CEP válido com 8 números');
+    return;
+  }
+  toast('🔍 Buscando endereço pelo CEP...');
+  try {
+    const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+    const data = await res.json();
+    if (data.erro) {
+      toast('CEP não encontrado. Preencha manualmente.');
+      return;
+    }
+    if (data.logradouro) $('#chk-rua').value = data.logradouro;
+    if (data.bairro) {
+      const select = $('#chk-bairro');
+      for (const opt of select.options) {
+        if (opt.value.toLowerCase() === data.bairro.toLowerCase()) {
+          select.value = opt.value;
+          atualizarTaxaBairroCheckout();
+          break;
+        }
+      }
+    }
+    toast('✅ Endereço preenchido com sucesso!');
+  } catch (e) {
+    toast('Não foi possível consultar o CEP automaticamente.');
+  }
+};
+
+window.submitPedidoSite = async function(e) {
+  e.preventDefault();
+  const btn = $('#btn-confirmar-pedido-final');
+  if (btn.disabled) return;
+
+  const nome = $('#chk-nome').value.trim();
+  const telefone = $('#chk-telefone').value.trim();
+  const bairro = $('#chk-bairro').value;
+  const rua = $('#chk-rua').value.trim();
+  const numero = $('#chk-numero').value.trim();
+  const complemento = $('#chk-comp').value.trim();
+  const referencia = $('#chk-ref').value.trim();
+  const cep = $('#chk-cep').value.trim();
+  const obs = $('#chk-obs').value.trim();
+
+  if (!bairro) {
+    alert('Por favor, selecione o bairro de entrega.');
+    return;
+  }
+
+  const precisaTroco = $('#chk-precisa-troco') && $('#chk-precisa-troco').checked;
+  const trocoPara = precisaTroco ? parseFloat($('#chk-troco-para').value) : null;
+
+  btn.disabled = true;
+  btn.innerHTML = '<span>⏳ Enviando Pedido...</span>';
+
+  try {
+    const payload = {
+      cliente_nome: nome,
+      cliente_telefone: telefone,
+      endereco: { rua, numero, complemento, bairro, referencia, cep },
+      itens: carrinho.map(item => ({
+        id: item.id || null,
+        n: item.nome,
+        preco: item.preco,
+        qtd: item.qtd,
+        opcoes: item.opcoes || null,
+        obs: obs
+      })),
+      forma_pagamento: formaPagamentoCheckout,
+      precisa_troco: precisaTroco,
+      troco_para: trocoPara
+    };
+
+    const headers = { 'Content-Type': 'application/json' };
+    if (clienteToken) headers['Authorization'] = `Bearer ${clienteToken}`;
+
+    const res = await fetch('/api/pedidos', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      alert(`⚠️ Não foi possível confirmar o pedido: ${data.error || 'Erro desconhecido'}`);
+      btn.disabled = false;
+      btn.innerHTML = '<span>✓ Confirmar e Enviar Pedido</span>';
+      return;
+    }
+
+    // Sucesso!
+    salvarUltimoPedidoLocalmente(data.pedido);
+    carrinho = [];
+    salvarCarrinho();
+    atualizarBadgeCarrinho();
+    renderCarrinho();
+    fecharModalCheckout();
+
+    toast(`🎉 Pedido #${data.pedido.numero} realizado com sucesso!`);
+    abrirRastreamentoPedido(data.pedido.id, data.pedido.codigo_rastreio);
+  } catch (err) {
+    alert('Erro de conexão ao enviar o pedido. Verifique sua internet e tente novamente.');
+    btn.disabled = false;
+    btn.innerHTML = '<span>✓ Confirmar e Enviar Pedido</span>';
+  }
+};
+
+function salvarUltimoPedidoLocalmente(pedido) {
+  try {
+    const salvos = JSON.parse(localStorage.getItem('lolla_cliente_ultimos_pedidos') || '[]');
+    salvos.unshift(pedido);
+    localStorage.setItem('lolla_cliente_ultimos_pedidos', JSON.stringify(salvos.slice(0, 15)));
+  } catch (e) {}
+}
+
+// 5. Rastreamento do Pedido em Tempo Real
+window.abrirModalBuscaRastreio = function() {
+  $('#modal-busca-rastreio').classList.add('aberto');
+};
+window.fecharModalBuscaRastreio = function() {
+  $('#modal-busca-rastreio').classList.remove('aberto');
+};
+
+window.submitBuscarRastreio = function(e) {
+  e.preventDefault();
+  const codigo = $('#input-codigo-rastreio').value.trim();
+  fecharModalBuscaRastreio();
+  abrirRastreamentoPedido(codigo, codigo);
+};
+
+window.abrirRastreamentoPedido = async function(pedidoIdOuNumero, codigoOpcional, silencioso = false) {
+  if (!silencioso) toast('🔍 Localizando pedido...');
+  try {
+    const codigoParam = codigoOpcional ? `?codigo=${encodeURIComponent(codigoOpcional)}` : '';
+    const headers = {};
+    if (clienteToken) headers['Authorization'] = `Bearer ${clienteToken}`;
+    else if (donoToken) headers['Authorization'] = `Bearer ${donoToken}`;
+
+    const res = await fetch(`/api/pedidos/${pedidoIdOuNumero}/rastrear${codigoParam}`, { headers });
+    if (!res.ok) {
+      if (!silencioso) alert('Pedido não encontrado ou código de acesso inválido.');
+      return;
+    }
+
+    const pedido = await res.json();
+    pedidoRastreioAtual = pedido;
+    renderizarTelaRastreamento(pedido);
+    $('#modal-rastreamento-pedido').classList.add('aberto');
+  } catch (e) {
+    if (!silencioso) alert('Erro ao consultar o rastreamento.');
+  }
+};
+
+window.fecharModalRastreamento = function() {
+  $('#modal-rastreamento-pedido').classList.remove('aberto');
+  pedidoRastreioAtual = null;
+};
+
+function renderizarTelaRastreamento(p) {
+  $('#rastreio-numero-comanda').textContent = `Comanda #${p.numero || '----'}`;
+  $('#rastreio-cliente-info').textContent = `Cliente: ${p.cliente_nome || ''}`;
+  $('#rastreio-endereco-info').textContent = p.endereco ? `${p.endereco.rua}, ${p.endereco.numero} - ${p.endereco.bairro}` : '';
+  $('#rastreio-total-info').textContent = `R$ ${brl(p.total)}`;
+  $('#rastreio-pagamento-info').textContent = (p.forma_pagamento || '').toUpperCase() + (p.troco_valor ? ` (Troco: R$ ${brl(p.troco_valor)})` : '');
+  $('#rastreio-codigo-chave').textContent = p.codigo_rastreio || '----';
+
+  const badgeTopo = $('#rastreio-badge-status-topo');
+  if (badgeTopo) {
+    badgeTopo.className = `comanda-status-badge ${p.status}`;
+    badgeTopo.textContent = p.status.replace(/_/g, ' ');
+  }
+
+  // Cancelamento
+  const boxCanc = $('#rastreio-alerta-cancelado');
+  if (p.status === 'CANCELADO') {
+    boxCanc.style.display = 'block';
+    $('#rastreio-motivo-cancelado').textContent = p.motivo_cancelamento || 'Cancelado pela sorveteria.';
+  } else {
+    boxCanc.style.display = 'none';
+  }
+
+  // Atualização da Timeline dos 7 Passos
+  const ordem = [
+    'RECEBIDO',
+    'ACEITO',
+    'EM_PREPARACAO',
+    'AGUARDANDO_ENTREGADOR',
+    'ENTREGADOR_A_CAMINHO',
+    'SAIU_ENTREGA',
+    'ENTREGUE'
+  ];
+
+  const idxAtual = ordem.indexOf(p.status);
+  ordem.forEach((st, idx) => {
+    const el = $(`#passo-${st}`);
+    if (!el) return;
+    el.classList.remove('concluido', 'ativo', 'cancelado');
+    if (p.status === 'CANCELADO') {
+      if (idx === 0) el.classList.add('cancelado');
+    } else if (idx < idxAtual) {
+      el.classList.add('concluido');
+    } else if (idx === idxAtual) {
+      el.classList.add('ativo');
+    }
+  });
+
+  if (p.entregador_nome) {
+    $('#rastreio-motoboy-nome').textContent = `Motoboy: ${p.entregador_nome}`;
+  }
+
+  // Lista de produtos
+  const listaProd = $('#rastreio-produtos-lista');
+  if (listaProd && Array.isArray(p.itens)) {
+    listaProd.innerHTML = p.itens.map(it => `
+      <div style="display:flex;justify-content:space-between;border-bottom:1px solid rgba(0,0,0,0.05);padding-bottom:4px">
+        <span><strong>${it.qtd}x</strong> ${esc(it.nome)}</span>
+        <span>R$ ${brl(it.subtotal || it.preco * it.qtd)}</span>
+      </div>
+    `).join('') + `
+      <div style="display:flex;justify-content:space-between;color:var(--tinta-fraca);margin-top:4px">
+        <span>Taxa de Entrega:</span>
+        <span>R$ ${brl(p.taxa_entrega)}</span>
+      </div>
+    `;
+  }
+}
+
+window.copiarLinkRastreio = function() {
+  if (!pedidoRastreioAtual) return;
+  const url = `${window.location.origin}/rastrear?codigo=${pedidoRastreioAtual.codigo_rastreio}`;
+  navigator.clipboard.writeText(url).then(() => {
+    toast('✅ Link seguro copiado! Você pode compartilhar ou salvar.');
+  });
+};
+
+// 6. Conta do Cliente (Login, Cadastro e Histórico)
+window.abrirMinhaContaOuLogin = function() {
+  if (clienteToken) {
+    carregarDadosMinhaConta();
+  } else {
+    $('#modal-auth-cliente').classList.add('aberto');
+  }
+};
+
+window.fecharModalAuthCliente = function() {
+  $('#modal-auth-cliente').classList.remove('aberto');
+};
+
+window.alternarAbaCliente = function(aba) {
+  $('#aba-cli-login').classList.toggle('ativo', aba === 'login');
+  $('#aba-cli-cad').classList.toggle('ativo', aba === 'cad');
+  $('#form-cliente-login').style.display = aba === 'login' ? 'block' : 'none';
+  $('#form-cliente-cad').style.display = aba === 'cad' ? 'block' : 'none';
+};
+
+window.submitLoginCliente = async function(e) {
+  e.preventDefault();
+  const telefone = $('#cli-login-tel').value.trim();
+  const password = $('#cli-login-senha').value;
+  try {
+    const res = await fetch('/api/auth/cliente/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ telefone, password })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      alert(`⚠️ ${data.error || 'Erro ao entrar'}`);
+      return;
+    }
+    clienteToken = data.token;
+    clienteAtual = data.cliente;
+    localStorage.setItem('lolla_cliente_token', clienteToken);
+    fecharModalAuthCliente();
+    toast(`👋 Bem-vindo de volta, ${clienteAtual.nome}!`);
+    carregarDadosMinhaConta();
+  } catch (err) {
+    alert('Erro de conexão ao fazer login.');
+  }
+};
+
+window.submitCadastroCliente = async function(e) {
+  e.preventDefault();
+  const nome = $('#cli-cad-nome').value.trim();
+  const telefone = $('#cli-cad-tel').value.trim();
+  const email = $('#cli-cad-email').value.trim();
+  const password = $('#cli-cad-senha').value;
+  try {
+    const res = await fetch('/api/auth/cliente/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nome, telefone, email, password })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      alert(`⚠️ ${data.error || 'Erro ao cadastrar'}`);
+      return;
+    }
+    clienteToken = data.token;
+    clienteAtual = data.cliente;
+    localStorage.setItem('lolla_cliente_token', clienteToken);
+    fecharModalAuthCliente();
+    toast(`🎉 Conta criada com sucesso! Olá, ${clienteAtual.nome}!`);
+    carregarDadosMinhaConta();
+  } catch (err) {
+    alert('Erro de conexão ao realizar cadastro.');
+  }
+};
+
+async function carregarDadosMinhaConta() {
+  $('#modal-minha-conta').classList.add('aberto');
+  try {
+    const res = await fetch('/api/cliente/me', {
+      headers: { 'Authorization': `Bearer ${clienteToken}` }
+    });
+    if (!res.ok) {
+      logoutCliente();
+      return;
+    }
+    clienteAtual = await res.json();
+    $('#minha-conta-subtitulo').textContent = `Olá, ${clienteAtual.nome}`;
+    $('#minha-conta-nome').textContent = clienteAtual.nome;
+    $('#minha-conta-tel').textContent = clienteAtual.telefone;
+
+    // Carrega histórico de compras
+    const resPeds = await fetch('/api/cliente/pedidos', {
+      headers: { 'Authorization': `Bearer ${clienteToken}` }
+    });
+    const pedidos = await resPeds.json();
+    const lista = $('#minha-conta-pedidos-lista');
+    if (!pedidos || !pedidos.length) {
+      lista.innerHTML = '<div style="text-align:center;padding:20px;color:var(--tinta-fraca)">Você ainda não possui pedidos anteriores.</div>';
+      return;
+    }
+
+    lista.innerHTML = pedidos.map(p => `
+      <div style="background:#fff;border:1.5px solid var(--borda);border-radius:14px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+        <div>
+          <strong style="color:var(--magenta);font-size:14px">Comanda #${p.numero}</strong>
+          <span style="display:block;font-size:12px;color:var(--tinta-fraca)">${new Date(p.created_at).toLocaleDateString('pt-BR')} às ${new Date(p.created_at).toLocaleTimeString('pt-BR').slice(0,5)}</span>
+          <span style="font-size:13px;font-weight:700;color:var(--tinta)">Total: R$ ${brl(p.total)} (${p.itens ? p.itens.length : 0} itens)</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="comanda-status-badge ${p.status}">${p.status.replace(/_/g, ' ')}</span>
+          <button type="button" class="btn-admin secundario" onclick="abrirRastreamentoPedido('${p.id}', '${p.codigo_rastreio}')" style="padding:6px 12px;font-size:12px">Rastrear</button>
+        </div>
+      </div>
+    `).join('');
+  } catch (e) {}
+}
+
+window.fecharModalMinhaConta = function() {
+  $('#modal-minha-conta').classList.remove('aberto');
+};
+
+window.logoutCliente = function() {
+  clienteToken = '';
+  clienteAtual = null;
+  localStorage.removeItem('lolla_cliente_token');
+  fecharModalMinhaConta();
+  toast('Você saiu da sua conta.');
+};
+
+// 7. Painel do Dono da Sorveteria
+window.abrirPainelDono = function() {
+  if (donoToken) {
+    $('#painel-dono-overlay').classList.add('aberto');
+    carregarDashboardDono();
+    carregarPedidosDono();
+  } else {
+    $('#modal-login-dono').classList.add('aberto');
+  }
+};
+
+window.fecharPainelDono = function() {
+  $('#painel-dono-overlay').classList.remove('aberto');
+};
+
+window.fecharModalLoginDono = function() {
+  $('#modal-login-dono').classList.remove('aberto');
+};
+
+window.submitLoginDono = async function(e) {
+  e.preventDefault();
+  const password = $('#dono-senha').value;
+  try {
+    const res = await fetch('/api/auth/dono/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      alert(`⚠️ ${data.error || 'Senha incorreta'}`);
+      return;
+    }
+    donoToken = data.token;
+    localStorage.setItem('lolla_dono_token', donoToken);
+    fecharModalLoginDono();
+    toast('👑 Bem-vindo ao Painel do Dono da Sorveteria Lolla!');
+    abrirPainelDono();
+  } catch (err) {
+    alert('Erro de conexão ao acessar o painel do Dono.');
+  }
+};
+
+window.alternarAbaDono = function(aba) {
+  const abas = ['dashboard', 'pedidos', 'entregadores', 'remuneracao', 'bairros', 'horarios', 'pagamentos'];
+  abas.forEach(a => {
+    const sec = $(`#aba-dono-${a}`);
+    if (sec) sec.style.display = a === aba ? 'block' : 'none';
+  });
+
+  const btns = document.querySelectorAll('.painel-abas-nav .painel-aba-btn');
+  btns.forEach(b => {
+    b.classList.toggle('ativo', b.getAttribute('onclick').includes(`'${aba}'`));
+  });
+
+  if (aba === 'dashboard') carregarDashboardDono();
+  else if (aba === 'pedidos') carregarPedidosDono();
+  else if (aba === 'entregadores') carregarEntregadoresDono();
+  else if (aba === 'remuneracao') carregarRemuneracaoDono();
+  else if (aba === 'bairros') carregarBairrosDono();
+  else if (aba === 'horarios') carregarHorariosDono();
+  else if (aba === 'pagamentos') carregarPagamentosDono();
+};
+
+window.carregarDashboardDono = async function(periodo = 'hoje') {
+  try {
+    const res = await fetch(`/api/dono/dashboard?periodo=${periodo}`, {
+      headers: { 'Authorization': `Bearer ${donoToken}` }
+    });
+    if (!res.ok) return;
+    const d = await res.json();
+
+    $('#kpi-pedidos-hoje').textContent = d.pedidosHoje || 0;
+    $('#kpi-aguardando-aceite').textContent = `${d.aguardandoAceitacao || 0} aguardando aceitação`;
+    $('#kpi-em-andamento').textContent = d.pedidosEmAndamento || 0;
+    $('#kpi-pedidos-entregues').textContent = d.pedidosEntreguesPeriodo || 0;
+    $('#kpi-pedidos-cancelados').textContent = `${d.pedidosCanceladosPeriodo || 0} cancelados`;
+    $('#kpi-faturamento-bruto').textContent = `R$ ${brl(d.faturamentoBruto || 0)}`;
+    $('#kpi-faturamento-pendente').textContent = `R$ ${brl(d.faturamentoPendente || 0)} em aberto`;
+    $('#kpi-ticket-medio').textContent = `R$ ${brl(d.ticketMedio || 0)}`;
+    $('#kpi-motoboys-online').textContent = d.entregadoresOnline || 0;
+  } catch (e) {}
+};
+
+window.filtrarStatusPedidosDono = function(status, btn) {
+  statusFiltroDono = status;
+  document.querySelectorAll('.pedidos-status-tabs .status-pill-btn').forEach(b => b.classList.remove('ativo'));
+  if (btn) btn.classList.add('ativo');
+  renderizarComandasDono();
+};
+
+window.carregarPedidosDono = async function() {
+  try {
+    const res = await fetch('/api/dono/pedidos', {
+      headers: { 'Authorization': `Bearer ${donoToken}` }
+    });
+    if (!res.ok) return;
+    pedidosCacheDono = await res.json();
+    $('#cont-pedidos-dono').textContent = pedidosCacheDono.filter(o => o.status !== 'CANCELADO').length;
+    renderizarComandasDono();
+  } catch (e) {}
+};
+
+function renderizarComandasDono() {
+  const grid = $('#grid-comandas-dono');
+  if (!grid) return;
+
+  let filtrados = pedidosCacheDono;
+  if (statusFiltroDono !== 'TODOS') {
+    filtrados = pedidosCacheDono.filter(o => o.status === statusFiltroDono);
+  }
+
+  if (!filtrados.length) {
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;background:#fff;border-radius:18px;color:var(--tinta-fraca)">Nenhuma comanda encontrada para este filtro.</div>';
+    return;
+  }
+
+  grid.innerHTML = filtrados.map(o => `
+    <div class="comanda-card" id="card-comanda-${o.id}">
+      <div class="comanda-topo">
+        <div>
+          <span class="comanda-numero">Comanda #${o.numero}</span>
+          <span style="display:block;font-size:11.5px;color:var(--tinta-fraca)">${new Date(o.created_at).toLocaleTimeString('pt-BR').slice(0,5)} · ${o.endereco ? o.endereco.bairro : ''}</span>
+        </div>
+        <span class="comanda-status-badge ${o.status}">${o.status.replace(/_/g, ' ')}</span>
+      </div>
+
+      <div style="font-size:13.5px;color:var(--tinta)">
+        <strong>Cliente:</strong> ${esc(o.cliente_nome)} · 📞 <a href="https://wa.me/55${(o.cliente_telefone||'').replace(/\D/g,'')}" target="_blank" style="color:var(--verde);text-decoration:none">${o.cliente_telefone}</a><br>
+        <span style="color:var(--tinta-fraca);font-size:12px">📍 ${esc(o.endereco.rua)}, ${esc(o.endereco.numero)} ${o.endereco.complemento ? '('+esc(o.endereco.complemento)+')' : ''}</span>
+      </div>
+
+      <div class="comanda-corpo-itens" style="background:#FFFBF8;padding:8px 10px;border-radius:10px">
+        ${(o.itens || []).map(it => `
+          <div class="comanda-item-linha">
+            <span><strong>${it.qtd}x</strong> ${esc(it.nome)}</span>
+            <span>R$ ${brl(it.subtotal || it.preco * it.qtd)}</span>
+          </div>
+        `).join('')}
+        <div style="display:flex;justify-content:space-between;border-top:1px dashed var(--borda);padding-top:4px;margin-top:4px;font-weight:700">
+          <span>Total (${(o.forma_pagamento||'').toUpperCase()}):</span>
+          <span style="color:var(--magenta)">R$ ${brl(o.total)}</span>
+        </div>
+        ${o.troco_valor ? `<div style="font-size:11.5px;color:#CF1322;font-weight:700">⚠️ Levar R$ ${brl(o.troco_valor)} de troco (paga com R$ ${brl(o.troco_para)})</div>` : ''}
+        ${o.entregador_nome ? `<div style="font-size:12px;color:#008A45;font-weight:700;margin-top:2px">🛵 Motoboy: ${esc(o.entregador_nome)}</div>` : ''}
+      </div>
+
+      <!-- Ações da Comanda -->
+      <div class="comanda-acoes-bar">
+        ${o.status === 'RECEBIDO' ? `
+          <button type="button" class="btn-comanda-acao primario" onclick="atualizarStatusPedidoDono('${o.id}', 'ACEITO')">✓ Aceitar Pedido</button>
+        ` : ''}
+
+        ${o.status === 'ACEITO' ? `
+          <button type="button" class="btn-comanda-acao primario" onclick="atualizarStatusPedidoDono('${o.id}', 'EM_PREPARACAO')">🍧 Iniciar Preparação</button>
+        ` : ''}
+
+        ${o.status === 'EM_PREPARACAO' ? `
+          <button type="button" class="btn-comanda-acao verde" onclick="chamarEntregadorDono('${o.id}')">🛵 Chamar Entregador</button>
+        ` : ''}
+
+        ${o.status === 'AGUARDANDO_ENTREGADOR' ? `
+          <button type="button" class="btn-comanda-acao perigo" onclick="cancelarChamadaEntregadorDono('${o.id}')">Cancelar Chamada Motoboy</button>
+        ` : ''}
+
+        ${o.status === 'SAIU_ENTREGA' ? `
+          <button type="button" class="btn-comanda-acao verde" onclick="atualizarStatusPedidoDono('${o.id}', 'ENTREGUE')">✓ Marcar como Entregue</button>
+        ` : ''}
+
+        <button type="button" class="btn-comanda-acao secundario" onclick="imprimirComanda('${o.id}')" title="Imprimir Comanda para a Cozinha">🖨️ Imprimir</button>
+        
+        ${!['ENTREGUE', 'CANCELADO'].includes(o.status) ? `
+          <button type="button" class="btn-comanda-acao perigo" onclick="abrirModalCancelarPedido('${o.id}', '${o.numero}')" title="Cancelar este pedido">✕ Cancelar</button>
+        ` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+window.atualizarStatusPedidoDono = async function(pedidoId, novoStatus, descricao) {
+  try {
+    const res = await fetch(`/api/dono/pedidos/${pedidoId}/status`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${donoToken}`
+      },
+      body: JSON.stringify({ novoStatus, descricao })
+    });
+    if (!res.ok) {
+      alert('Não foi possível alterar o status do pedido.');
+      return;
+    }
+    toast(`✓ Pedido alterado para ${novoStatus}!`);
+    carregarPedidosDono();
+    carregarDashboardDono();
+  } catch (e) {
+    alert('Erro de conexão.');
+  }
+};
+
+window.chamarEntregadorDono = async function(pedidoId) {
+  toast('📢 Disparando chamada para motoboys online...');
+  try {
+    const res = await fetch(`/api/dono/pedidos/${pedidoId}/chamar-entregador`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${donoToken}` }
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      alert(`⚠️ ${data.error || 'Nenhum entregador disponível'}`);
+      return;
+    }
+    toast(`✅ Chamada enviada para ${data.entregadoresNotificados} motoboy(s) online!`);
+    carregarPedidosDono();
+  } catch (e) {
+    alert('Erro de conexão ao chamar entregador.');
+  }
+};
+
+window.cancelarChamadaEntregadorDono = async function(pedidoId) {
+  try {
+    await fetch(`/api/dono/pedidos/${pedidoId}/cancelar-chamada`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${donoToken}` }
+    });
+    toast('Chamada de entregador cancelada.');
+    carregarPedidosDono();
+  } catch (e) {}
+};
+
+window.abrirModalCancelarPedido = function(pedidoId, numero) {
+  $('#cancelar-pedido-id').value = pedidoId;
+  $('#cancelar-comanda-numero').textContent = `Comanda #${numero}`;
+  $('#cancelar-motivo').value = '';
+  $('#modal-cancelar-pedido-dono').classList.add('aberto');
+};
+
+window.fecharModalCancelarPedido = function() {
+  $('#modal-cancelar-pedido-dono').classList.remove('aberto');
+};
+
+window.submitCancelarPedidoDono = async function(e) {
+  e.preventDefault();
+  const pedidoId = $('#cancelar-pedido-id').value;
+  const motivo = $('#cancelar-motivo').value.trim();
+  try {
+    const res = await fetch(`/api/dono/pedidos/${pedidoId}/cancelar`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${donoToken}`
+      },
+      body: JSON.stringify({ motivo })
+    });
+    if (!res.ok) {
+      alert('Não foi possível cancelar o pedido.');
+      return;
+    }
+    fecharModalCancelarPedido();
+    toast('❌ Pedido cancelado com sucesso.');
+    carregarPedidosDono();
+    carregarDashboardDono();
+  } catch (err) {
+    alert('Erro de conexão.');
+  }
+};
+
+// Impressão Térmica de Comanda (@media print)
+window.imprimirComanda = function(pedidoId) {
+  const p = pedidosCacheDono.find(o => o.id === pedidoId);
+  if (!p) return;
+
+  const printDiv = $('#comanda-impressao');
+  printDiv.innerHTML = `
+    <div class="comanda-print-centro">
+      <div class="comanda-print-titulo">SORVETERIA LOLLA</div>
+      <div>Delivery & Retirada</div>
+      <div class="comanda-print-separador"></div>
+      <div class="comanda-print-numero">COMANDA #${p.numero}</div>
+      <div>Data: ${new Date(p.created_at).toLocaleDateString('pt-BR')} - ${new Date(p.created_at).toLocaleTimeString('pt-BR')}</div>
+    </div>
+    <div class="comanda-print-separador"></div>
+    <div><strong>CLIENTE:</strong> ${p.cliente_nome}</div>
+    <div><strong>TELEFONE:</strong> ${p.cliente_telefone}</div>
+    <div><strong>ENDEREÇO:</strong> ${p.endereco.rua}, ${p.endereco.numero}</div>
+    ${p.endereco.complemento ? `<div><strong>COMPLEMENTO:</strong> ${p.endereco.complemento}</div>` : ''}
+    <div><strong>BAIRRO:</strong> ${p.endereco.bairro}</div>
+    ${p.endereco.referencia ? `<div><strong>REF:</strong> ${p.endereco.referencia}</div>` : ''}
+    <div class="comanda-print-separador"></div>
+    <div class="comanda-print-centro"><strong>ITENS DO PEDIDO</strong></div>
+    ${(p.itens || []).map(it => `
+      <div class="comanda-print-item">
+        <strong>${it.qtd}x ${it.nome}</strong> - R$ ${brl(it.subtotal || it.preco * it.qtd)}<br>
+        ${it.opcoes ? `<span style="font-size:11px">Opções: ${JSON.stringify(it.opcoes)}</span><br>` : ''}
+        ${it.obs ? `<span style="font-size:11px">Obs: ${it.obs}</span>` : ''}
+      </div>
+    `).join('')}
+    <div class="comanda-print-separador"></div>
+    <div style="display:flex;justify-content:space-between">
+      <span>Subtotal Produtos:</span>
+      <span>R$ ${brl(p.subtotal)}</span>
+    </div>
+    <div style="display:flex;justify-content:space-between">
+      <span>Taxa de Entrega:</span>
+      <span>R$ ${brl(p.taxa_entrega)}</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:15px;font-weight:900;margin-top:4px">
+      <span>TOTAL A PAGAR:</span>
+      <span>R$ ${brl(p.total)}</span>
+    </div>
+    <div class="comanda-print-separador"></div>
+    <div><strong>FORMA PAGTO:</strong> ${(p.forma_pagamento || '').toUpperCase()}</div>
+    ${p.troco_valor ? `<div><strong>LEVAR TROCO:</strong> R$ ${brl(p.troco_valor)} (Paga R$ ${brl(p.troco_para)})</div>` : ''}
+    ${p.entregador_nome ? `<div><strong>ENTREGADOR:</strong> ${p.entregador_nome}</div>` : ''}
+    <div class="comanda-print-separador"></div>
+    <div class="comanda-print-centro" style="font-size:11px">
+      Obrigado pela preferência!<br>
+      Sorvetes e Açaís Artesanais
+    </div>
+  `;
+
+  setTimeout(() => {
+    window.print();
+  }, 100);
+};
+
+// 8. Gestão de Entregadores e Remuneração pelo Dono
+window.carregarEntregadoresDono = async function() {
+  try {
+    const res = await fetch('/api/dono/entregadores', {
+      headers: { 'Authorization': `Bearer ${donoToken}` }
+    });
+    const drivers = await res.json();
+    const tabela = $('#tabela-entregadores-dono');
+
+    if (!drivers.length) {
+      tabela.innerHTML = '<div style="padding:30px;text-align:center;color:var(--tinta-fraca)">Nenhum entregador cadastrado ainda.</div>';
+      return;
+    }
+
+    tabela.innerHTML = `
+      <table style="width:100%;border-collapse:collapse;font-size:13.5px;text-align:left">
+        <thead>
+          <tr style="background:#FFFBF8;border-bottom:1.5px solid var(--borda)">
+            <th style="padding:12px 16px">Nome</th>
+            <th style="padding:12px 16px">Telefone</th>
+            <th style="padding:12px 16px">CPF</th>
+            <th style="padding:12px 16px">Status da Conta</th>
+            <th style="padding:12px 16px">Disponibilidade</th>
+            <th style="padding:12px 16px">Entregas</th>
+            <th style="padding:12px 16px">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${drivers.map(d => `
+            <tr style="border-bottom:1px solid rgba(0,0,0,0.05)">
+              <td style="padding:12px 16px"><strong>${esc(d.nome)}</strong></td>
+              <td style="padding:12px 16px">${d.telefone}</td>
+              <td style="padding:12px 16px">${d.cpf || 'Não informado'}</td>
+              <td style="padding:12px 16px">
+                <span class="comanda-status-badge ${d.status === 'APROVADO' ? 'ENTREGUE' : (d.status === 'AGUARDANDO_APROVACAO' ? 'RECEBIDO' : 'CANCELADO')}">
+                  ${d.status.replace(/_/g, ' ')}
+                </span>
+              </td>
+              <td style="padding:12px 16px">
+                <span style="font-weight:700;color:${d.online ? '#008A45' : '#CF1322'}">
+                  ${d.online ? '🟢 Online' : '🔴 Offline'}
+                </span>
+              </td>
+              <td style="padding:12px 16px">${d.total_entregas || 0}</td>
+              <td style="padding:12px 16px">
+                ${d.status !== 'APROVADO' ? `
+                  <button type="button" class="btn-comanda-acao verde" onclick="alterarStatusEntregadorDono('${d.id}', 'APROVADO')" style="padding:5px 10px;font-size:12px">✓ Aprovar</button>
+                ` : `
+                  <button type="button" class="btn-comanda-acao perigo" onclick="alterarStatusEntregadorDono('${d.id}', 'SUSPENSO')" style="padding:5px 10px;font-size:12px">Suspender</button>
+                `}
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  } catch (e) {}
+};
+
+window.alterarStatusEntregadorDono = async function(driverId, novoStatus) {
+  try {
+    const res = await fetch(`/api/dono/entregadores/${driverId}/status`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${donoToken}`
+      },
+      body: JSON.stringify({ status: novoStatus })
+    });
+    if (!res.ok) {
+      alert('Não foi possível alterar o status do entregador.');
+      return;
+    }
+    toast(`Status do entregador alterado para ${novoStatus}!`);
+    carregarEntregadoresDono();
+  } catch (e) {
+    alert('Erro de conexão.');
+  }
+};
+
+window.carregarRemuneracaoDono = async function() {
+  try {
+    const res = await fetch('/api/dono/remuneracao', {
+      headers: { 'Authorization': `Bearer ${donoToken}` }
+    });
+    const lista = await res.json();
+    const tabela = $('#tabela-remuneracao-dono');
+
+    if (!lista.length) {
+      tabela.innerHTML = '<div style="padding:30px;text-align:center;color:var(--tinta-fraca)">Nenhum dado de remuneração encontrado.</div>';
+      return;
+    }
+
+    tabela.innerHTML = `
+      <table style="width:100%;border-collapse:collapse;font-size:13.5px;text-align:left">
+        <thead>
+          <tr style="background:#FFFBF8;border-bottom:1.5px solid var(--borda)">
+            <th style="padding:12px 16px">Entregador</th>
+            <th style="padding:12px 16px">Corridas Concluídas</th>
+            <th style="padding:12px 16px">Total Gerado</th>
+            <th style="padding:12px 16px">Total Pago</th>
+            <th style="padding:12px 16px">Saldo a Pagar</th>
+            <th style="padding:12px 16px">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${lista.map(item => `
+            <tr style="border-bottom:1px solid rgba(0,0,0,0.05)">
+              <td style="padding:12px 16px"><strong>${esc(item.nome)}</strong><br><small style="color:var(--tinta-fraca)">${item.telefone}</small></td>
+              <td style="padding:12px 16px">${item.total_entregas}</td>
+              <td style="padding:12px 16px;color:#008A45;font-weight:700">R$ ${brl(item.totalGerado)}</td>
+              <td style="padding:12px 16px;color:var(--tinta-fraca)">R$ ${brl(item.totalPago)}</td>
+              <td style="padding:12px 16px;color:#CF1322;font-weight:800">R$ ${brl(item.saldoPendente)}</td>
+              <td style="padding:12px 16px">
+                ${item.saldoPendente > 0 ? `
+                  <button type="button" class="btn-comanda-acao verde" onclick="marcarPagamentoEntregadorDono('${item.id}', ${item.saldoPendente})" style="padding:6px 12px;font-size:12px">💵 Pagar R$ ${brl(item.saldoPendente)}</button>
+                ` : `
+                  <span style="color:#008A45;font-weight:700;font-size:12px">✓ Em dia</span>
+                `}
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  } catch (e) {}
+};
+
+window.marcarPagamentoEntregadorDono = async function(driverId, valor) {
+  const confirmou = confirm(`Deseja registrar o pagamento de R$ ${brl(valor)} para este entregador?`);
+  if (!confirmou) return;
+
+  try {
+    const res = await fetch('/api/dono/remuneracao/pagar', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${donoToken}`
+      },
+      body: JSON.stringify({
+        entregador_id: driverId,
+        valor,
+        observacao: 'Pagamento efetuado pelo Dono'
+      })
+    });
+    if (!res.ok) {
+      alert('Erro ao registrar pagamento.');
+      return;
+    }
+    toast('✅ Pagamento registrado com sucesso!');
+    carregarRemuneracaoDono();
+  } catch (e) {
+    alert('Erro de conexão.');
+  }
+};
+
+// 9. Bairros e Taxas pelo Dono
+window.carregarBairrosDono = async function() {
+  try {
+    const res = await fetch('/api/dono/bairros', {
+      headers: { 'Authorization': `Bearer ${donoToken}` }
+    });
+    const bairros = await res.json();
+    const tabela = $('#tabela-bairros-dono');
+
+    tabela.innerHTML = `
+      <table style="width:100%;border-collapse:collapse;font-size:13.5px;text-align:left">
+        <thead>
+          <tr style="background:#FFFBF8;border-bottom:1.5px solid var(--borda)">
+            <th style="padding:12px 16px">Bairro</th>
+            <th style="padding:12px 16px">Taxa do Cliente</th>
+            <th style="padding:12px 16px">Repasse ao Motoboy</th>
+            <th style="padding:12px 16px">Tempo Estimado</th>
+            <th style="padding:12px 16px">Status</th>
+            <th style="padding:12px 16px">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${bairros.map(b => `
+            <tr style="border-bottom:1px solid rgba(0,0,0,0.05)">
+              <td style="padding:12px 16px"><strong>${esc(b.nome)}</strong></td>
+              <td style="padding:12px 16px">R$ ${brl(b.taxa_cliente)}</td>
+              <td style="padding:12px 16px;color:#008A45;font-weight:700">R$ ${brl(b.valor_entregador)}</td>
+              <td style="padding:12px 16px">${esc(b.tempo_estimado || '30 - 45 min')}</td>
+              <td style="padding:12px 16px">
+                <span class="comanda-status-badge ${b.ativo ? 'ENTREGUE' : 'CANCELADO'}">
+                  ${b.ativo ? 'Ativo' : 'Pausado'}
+                </span>
+              </td>
+              <td style="padding:12px 16px;display:flex;gap:6px">
+                <button type="button" class="btn-comanda-acao secundario" onclick="editarBairroDono('${b.id}', '${esc(b.nome)}', ${b.taxa_cliente}, ${b.valor_entregador}, '${esc(b.tempo_estimado||'')}', ${b.ativo})" style="padding:4px 8px;font-size:11.5px">✏️ Editar</button>
+                <button type="button" class="btn-comanda-acao perigo" onclick="excluirBairroDono('${b.id}', '${esc(b.nome)}')" style="padding:4px 8px;font-size:11.5px">Excluir</button>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  } catch (e) {}
+};
+
+window.abrirModalAdicionarBairro = function() {
+  $('#modal-bairro-titulo').textContent = 'Adicionar Bairro';
+  $('#bairro-edit-id').value = '';
+  $('#bairro-edit-nome').value = '';
+  $('#bairro-edit-taxa').value = '';
+  $('#bairro-edit-repasse').value = '';
+  $('#bairro-edit-tempo').value = '30 - 45 min';
+  $('#bairro-edit-ativo').checked = true;
+  $('#modal-bairro-dono').classList.add('aberto');
+};
+
+window.editarBairroDono = function(id, nome, taxa, repasse, tempo, ativo) {
+  $('#modal-bairro-titulo').textContent = 'Editar Bairro';
+  $('#bairro-edit-id').value = id;
+  $('#bairro-edit-nome').value = nome;
+  $('#bairro-edit-taxa').value = taxa;
+  $('#bairro-edit-repasse').value = repasse;
+  $('#bairro-edit-tempo').value = tempo;
+  $('#bairro-edit-ativo').checked = Boolean(ativo);
+  $('#modal-bairro-dono').classList.add('aberto');
+};
+
+window.fecharModalBairroDono = function() {
+  $('#modal-bairro-dono').classList.remove('aberto');
+};
+
+window.submitSalvarBairroDono = async function(e) {
+  e.preventDefault();
+  const nome = $('#bairro-edit-nome').value.trim();
+  const taxa_cliente = parseFloat($('#bairro-edit-taxa').value);
+  const valor_entregador = parseFloat($('#bairro-edit-repasse').value);
+  const tempo_estimado = $('#bairro-edit-tempo').value.trim();
+  const ativo = $('#bairro-edit-ativo').checked;
+
+  try {
+    const res = await fetch('/api/dono/bairros', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${donoToken}`
+      },
+      body: JSON.stringify({ nome, taxa_cliente, valor_entregador, tempo_estimado, ativo })
+    });
+    if (!res.ok) {
+      alert('Erro ao salvar bairro.');
+      return;
+    }
+    fecharModalBairroDono();
+    toast('✅ Bairro salvo com sucesso!');
+    carregarBairrosDono();
+    carregarStatusOperacaoLoja();
+  } catch (err) {
+    alert('Erro de conexão.');
+  }
+};
+
+window.excluirBairroDono = async function(id, nome) {
+  if (!confirm(`Deseja realmente remover o bairro "${nome}"?`)) return;
+  try {
+    await fetch(`/api/dono/bairros/${id}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${donoToken}` }
+    });
+    toast('Bairro removido.');
+    carregarBairrosDono();
+    carregarStatusOperacaoLoja();
+  } catch (e) {}
+};
+
+// 10. Horários e Exceções pelo Dono
+let horariosCache = null;
+window.carregarHorariosDono = async function() {
+  try {
+    const res = await fetch('/api/dono/horarios', {
+      headers: { 'Authorization': `Bearer ${donoToken}` }
+    });
+    horariosCache = await res.json();
+    const dias = [
+      { id: 'segunda', nome: 'Segunda-feira' },
+      { id: 'terca', nome: 'Terça-feira' },
+      { id: 'quarta', nome: 'Quarta-feira' },
+      { id: 'quinta', nome: 'Quinta-feira' },
+      { id: 'sexta', nome: 'Sexta-feira' },
+      { id: 'sabado', nome: 'Sábado' },
+      { id: 'domingo', nome: 'Domingo' }
+    ];
+
+    const container = $('#lista-dias-horarios');
+    container.innerHTML = dias.map(d => {
+      const cfg = (horariosCache.horarios && horariosCache.horarios[d.id]) || { aberto: true, inicio: '13:00', fim: '23:00' };
+      return `
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid rgba(0,0,0,0.05);padding-bottom:8px;flex-wrap:wrap">
+          <label style="width:140px;font-weight:700">
+            <input type="checkbox" id="hor-${d.id}-aberto" ${cfg.aberto ? 'checked' : ''}> ${d.nome}
+          </label>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span>Das</span>
+            <input type="time" id="hor-${d.id}-inicio" value="${cfg.inicio || '13:00'}" style="padding:4px 8px;border-radius:6px;border:1px solid var(--borda)">
+            <span>às</span>
+            <input type="time" id="hor-${d.id}-fim" value="${cfg.fim || '23:00'}" style="padding:4px 8px;border-radius:6px;border:1px solid var(--borda)">
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    renderizarExcecoesCalendario();
+  } catch (e) {}
+};
+
+function renderizarExcecoesCalendario() {
+  const lista = $('#lista-excecoes-calendario');
+  const excecoes = (horariosCache && horariosCache.excecoes) || [];
+  if (!excecoes.length) {
+    lista.innerHTML = '<span style="color:var(--tinta-fraca);font-size:12px">Nenhuma exceção especial cadastrada.</span>';
+    return;
+  }
+  lista.innerHTML = excecoes.map((exc, idx) => `
+    <div style="display:flex;align-items:center;justify-content:space-between;background:#FFFBF8;padding:8px 12px;border-radius:8px;border:1px solid var(--borda);font-size:13px">
+      <span><strong>${exc.data}</strong> — ${esc(exc.motivo || 'Recesso')} (${exc.fechado ? 'FECHADO' : `${exc.inicio} às ${exc.fim}`})</span>
+      <button type="button" class="btn-comanda-acao perigo" onclick="removerExcecaoCalendario(${idx})" style="padding:2px 8px;font-size:11px">Excluir</button>
+    </div>
+  `).join('');
+}
+
+window.adicionarExcecaoCalendario = function() {
+  const data = $('#exc-data').value;
+  const motivo = $('#exc-motivo').value.trim();
+  const fechado = $('#exc-fechado').checked;
+  if (!data) {
+    alert('Escolha uma data para a exceção.');
+    return;
+  }
+  if (!horariosCache.excecoes) horariosCache.excecoes = [];
+  horariosCache.excecoes.push({ data, motivo, fechado });
+  $('#exc-data').value = '';
+  $('#exc-motivo').value = '';
+  renderizarExcecoesCalendario();
+};
+
+window.removerExcecaoCalendario = function(idx) {
+  if (horariosCache && horariosCache.excecoes) {
+    horariosCache.excecoes.splice(idx, 1);
+    renderizarExcecoesCalendario();
+  }
+};
+
+window.salvarHorariosDono = async function(e) {
+  e.preventDefault();
+  const dias = ['segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado', 'domingo'];
+  const novosHorarios = {};
+  dias.forEach(d => {
+    novosHorarios[d] = {
+      aberto: $(`#hor-${d}-aberto`).checked,
+      inicio: $(`#hor-${d}-inicio`).value,
+      fim: $(`#hor-${d}-fim`).value
+    };
+  });
+
+  try {
+    const res = await fetch('/api/dono/horarios', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${donoToken}`
+      },
+      body: JSON.stringify({
+        horarios: novosHorarios,
+        excecoes: horariosCache.excecoes || []
+      })
+    });
+    if (!res.ok) {
+      alert('Erro ao salvar horários.');
+      return;
+    }
+    toast('✅ Horários da sorveteria salvos com sucesso!');
+    carregarStatusOperacaoLoja();
+  } catch (err) {
+    alert('Erro de conexão.');
+  }
+};
+
+// 11. Pagamentos pelo Dono
+window.carregarPagamentosDono = async function() {
+  try {
+    const res = await fetch('/api/dono/pagamentos', {
+      headers: { 'Authorization': `Bearer ${donoToken}` }
+    });
+    const pag = await res.json();
+    if (pag.pix) {
+      $('#pix-tipo').value = pag.pix.tipo || 'telefone';
+      $('#pix-chave').value = pag.pix.chave || '';
+      $('#pix-titular').value = pag.pix.titular || '';
+      $('#pix-banco').value = pag.pix.instituicao || '';
+    }
+    $('#chk-pag-dinheiro-ativo').checked = pag.dinheiro ? Boolean(pag.dinheiro.ativo) : true;
+    $('#chk-pag-cartao-ativo').checked = pag.cartao_entrega ? Boolean(pag.cartao_entrega.ativo) : false;
+  } catch (e) {}
+};
+
+window.salvarPagamentosDono = async function(e) {
+  e.preventDefault();
+  const payload = {
+    pix: {
+      ativo: true,
+      tipo: $('#pix-tipo').value,
+      chave: $('#pix-chave').value.trim(),
+      titular: $('#pix-titular').value.trim(),
+      instituicao: $('#pix-banco').value.trim()
+    },
+    dinheiro: {
+      ativo: $('#chk-pag-dinheiro-ativo').checked
+    },
+    cartao_entrega: {
+      ativo: $('#chk-pag-cartao-ativo').checked
+    }
+  };
+
+  try {
+    const res = await fetch('/api/dono/pagamentos', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${donoToken}`
+      },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+      alert('Erro ao salvar pagamentos.');
+      return;
+    }
+    toast('✅ Configurações de pagamento salvas!');
+    carregarStatusOperacaoLoja();
+  } catch (err) {
+    alert('Erro de conexão.');
+  }
+};
+
+// 12. Portal do Entregador (Motoboy)
+window.abrirPainelEntregador = function() {
+  if (motoboyToken) {
+    $('#painel-entregador-overlay').classList.add('aberto');
+    carregarPerfilMotoboy();
+    carregarChamadasMotoboy();
+    carregarHistoricoMotoboy();
+  } else {
+    $('#modal-auth-entregador').classList.add('aberto');
+  }
+};
+
+window.fecharPainelEntregador = function() {
+  $('#painel-entregador-overlay').classList.remove('aberto');
+};
+
+window.fecharModalAuthEntregador = function() {
+  $('#modal-auth-entregador').classList.remove('aberto');
+};
+
+window.alternarAbaMotoboy = function(aba) {
+  $('#aba-motoboy-login').classList.toggle('ativo', aba === 'login');
+  $('#aba-motoboy-cad').classList.toggle('ativo', aba === 'cad');
+  $('#form-motoboy-login').style.display = aba === 'login' ? 'block' : 'none';
+  $('#form-motoboy-cad').style.display = aba === 'cad' ? 'block' : 'none';
+};
+
+window.submitLoginMotoboy = async function(e) {
+  e.preventDefault();
+  const telefone = $('#mot-login-tel').value.trim();
+  const password = $('#mot-login-senha').value;
+
+  try {
+    const res = await fetch('/api/auth/entregador/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ telefone, password })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      alert(`⚠️ ${data.error || 'Erro ao entrar'}`);
+      return;
+    }
+    motoboyToken = data.token;
+    motoboyAtual = data.entregador;
+    localStorage.setItem('lolla_motoboy_token', motoboyToken);
+    fecharModalAuthEntregador();
+    toast(`🛵 Olá, ${motoboyAtual.nome}!`);
+    abrirPainelEntregador();
+  } catch (err) {
+    alert('Erro de conexão ao acessar a área de entregador.');
+  }
+};
+
+window.submitCadastroMotoboy = async function(e) {
+  e.preventDefault();
+  const nome = $('#mot-cad-nome').value.trim();
+  const telefone = $('#mot-cad-tel').value.trim();
+  const cpf = $('#mot-cad-cpf').value.trim();
+  const password = $('#mot-cad-senha').value;
+
+  try {
+    const res = await fetch('/api/auth/entregador/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nome, telefone, cpf, password })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      alert(`⚠️ ${data.error || 'Erro no cadastro'}`);
+      return;
+    }
+    alert('✅ Cadastro recebido com sucesso!\n\nSeu acesso ficará ativo assim que o Dono da Sorveteria aprovar o seu perfil.');
+    alternarAbaMotoboy('login');
+  } catch (err) {
+    alert('Erro de conexão.');
+  }
+};
+
+async function carregarPerfilMotoboy() {
+  try {
+    const res = await fetch('/api/entregador/me', {
+      headers: { 'Authorization': `Bearer ${motoboyToken}` }
+    });
+    if (!res.ok) {
+      motoboyToken = '';
+      localStorage.removeItem('lolla_motoboy_token');
+      fecharPainelEntregador();
+      return;
+    }
+    motoboyAtual = await res.json();
+    $('#motoboy-nome-topo').textContent = `Olá, ${motoboyAtual.nome}`;
+    $('#motoboy-total-entregas').textContent = motoboyAtual.total_entregas || 0;
+    $('#motoboy-saldo-receber').textContent = `R$ ${brl(motoboyAtual.saldo_receber || 0)}`;
+
+    atualizarBotaoOnlineUI(motoboyAtual.online);
+  } catch (e) {}
+}
+
+function atualizarBotaoOnlineUI(online) {
+  const btn = $('#btn-toggle-online');
+  const ponto = $('#btn-toggle-online-ponto');
+  const txt = $('#btn-toggle-online-texto');
+  const desc = $('#motoboy-status-texto');
+
+  if (online) {
+    btn.className = 'btn-toggle-online online';
+    ponto.textContent = '🟢';
+    txt.textContent = 'Estou ONLINE';
+    desc.textContent = 'Você está disponível e receberá chamadas de entrega!';
+  } else {
+    btn.className = 'btn-toggle-online offline';
+    ponto.textContent = '🔴';
+    txt.textContent = 'Ficar Online';
+    desc.textContent = 'Fique online para receber chamadas de entrega.';
+  }
+}
+
+window.toggleOnlineMotoboy = async function() {
+  if (!motoboyAtual) return;
+  const novoEstado = !motoboyAtual.online;
+  try {
+    const res = await fetch('/api/entregador/toggle-online', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${motoboyToken}`
+      },
+      body: JSON.stringify({ online: novoEstado })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      alert(`⚠️ ${data.error || 'Não foi possível alterar status'}`);
+      return;
+    }
+    motoboyAtual.online = data.online;
+    atualizarBotaoOnlineUI(data.online);
+    toast(data.message);
+    if (data.online) carregarChamadasMotoboy();
+  } catch (e) {
+    alert('Erro de conexão.');
+  }
+};
+
+window.carregarChamadasMotoboy = async function() {
+  try {
+    const res = await fetch('/api/entregador/chamadas', {
+      headers: { 'Authorization': `Bearer ${motoboyToken}` }
+    });
+    if (!res.ok) return;
+    const chamadas = await res.json();
+    const container = $('#lista-chamadas-motoboy');
+
+    if (!chamadas.length) {
+      container.innerHTML = '<div style="background:#fff;border:1px dashed var(--borda);border-radius:14px;padding:20px;text-align:center;color:var(--tinta-fraca)">Nenhuma chamada de entrega no momento. Mantenha-se online!</div>';
+      return;
+    }
+
+    container.innerHTML = chamadas.map(c => `
+      <div class="chamada-motoboy-card" id="card-chamada-${c.id}">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <strong style="color:var(--magenta);font-size:16px">Comanda #${c.pedido_numero}</strong>
+          <span style="background:#008A45;color:#fff;padding:3px 10px;border-radius:999px;font-weight:800;font-size:13px">Você Ganha: R$ ${brl(c.valor_remuneracao)}</span>
+        </div>
+        <div style="font-size:13.5px;color:var(--tinta);margin-bottom:8px">
+          📍 <strong>Destino:</strong> ${esc(c.endereco_completo)}<br>
+          ${c.referencia ? `<small style="color:var(--tinta-fraca)">Ref: ${esc(c.referencia)}</small><br>` : ''}
+          💳 <strong>Pagamento pelo Cliente:</strong> ${(c.forma_pagamento||'').toUpperCase()} ${c.troco_valor ? `(Levar R$ ${brl(c.troco_valor)} de troco)` : ''}
+        </div>
+        <div style="display:flex;gap:10px;margin-top:10px">
+          <button type="button" class="btn-comanda-acao verde" onclick="aceitarChamadaMotoboy('${c.id}')" style="padding:10px;font-size:14px">✓ ACEITAR CORRIDA</button>
+          <button type="button" class="btn-comanda-acao perigo" onclick="recusarChamadaMotoboy('${c.id}')" style="padding:10px;font-size:14px">✕ Recusar</button>
+        </div>
+      </div>
+    `).join('');
+  } catch (e) {}
+};
+
+window.aceitarChamadaMotoboy = async function(callId) {
+  try {
+    const res = await fetch(`/api/entregador/chamadas/${callId}/aceitar`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${motoboyToken}` }
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      alert(`⚠️ ${data.error || 'Esta corrida já foi aceita por outro motoboy'}`);
+      carregarChamadasMotoboy();
+      return;
+    }
+    toast('🎉 Corrida aceita com sucesso!');
+    exibirEntregaAtivaMotoboy(data.call, data.pedido);
+    carregarChamadasMotoboy();
+  } catch (e) {
+    alert('Erro de conexão ao aceitar entrega.');
+  }
+};
+
+window.recusarChamadaMotoboy = async function(callId) {
+  try {
+    await fetch(`/api/entregador/chamadas/${callId}/recusar`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${motoboyToken}` }
+    });
+    carregarChamadasMotoboy();
+  } catch (e) {}
+};
+
+function exibirEntregaAtivaMotoboy(call, pedido) {
+  const box = $('#box-entrega-ativa-motoboy');
+  if (!box) return;
+  box.style.display = 'block';
+  box.dataset.pedidoId = pedido.id;
+
+  $('#ativa-comanda-numero').textContent = `Comanda #${pedido.numero}`;
+  $('#ativa-bairro').textContent = `Bairro: ${pedido.endereco.bairro}`;
+  $('#ativa-endereco-completo').textContent = `${pedido.endereco.rua}, ${pedido.endereco.numero} ${pedido.endereco.complemento ? '('+pedido.endereco.complemento+')' : ''}`;
+  $('#ativa-referencia').textContent = pedido.endereco.referencia ? `Ponto de Ref: ${pedido.endereco.referencia}` : '';
+  $('#ativa-valor-ganho').textContent = `R$ ${brl(pedido.valor_repasse_entregador || pedido.taxa_entrega || 5.00)}`;
+
+  const enderecoBusca = encodeURIComponent(`${pedido.endereco.rua}, ${pedido.endereco.numero}, ${pedido.endereco.bairro}`);
+  $('#btn-abrir-maps-motoboy').href = `https://www.google.com/maps/search/?api=1&query=${enderecoBusca}`;
+}
+
+window.atualizarEtapaMotoboy = async function(etapa) {
+  const box = $('#box-entrega-ativa-motoboy');
+  if (!box || !box.dataset.pedidoId) return;
+  const pedidoId = box.dataset.pedidoId;
+
+  try {
+    const res = await fetch(`/api/entregador/pedidos/${pedidoId}/etapa`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${motoboyToken}`
+      },
+      body: JSON.stringify({ etapa })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      alert(`⚠️ ${data.error || 'Erro ao atualizar etapa'}`);
+      return;
+    }
+
+    if (etapa === 'ENTREGUE') {
+      box.style.display = 'none';
+      toast('🎉 Parabéns! Entrega concluída e valor creditado no seu saldo!');
+      carregarPerfilMotoboy();
+      carregarHistoricoMotoboy();
+    } else {
+      toast(`Status atualizado: ${data.descricao || etapa}`);
+    }
+  } catch (e) {
+    alert('Erro de conexão ao atualizar etapa.');
+  }
+};
+
+window.carregarHistoricoMotoboy = async function() {
+  try {
+    const res = await fetch('/api/entregador/historico', {
+      headers: { 'Authorization': `Bearer ${motoboyToken}` }
+    });
+    const entregas = await res.json();
+    const container = $('#historico-entregas-motoboy');
+
+    if (!entregas.length) {
+      container.innerHTML = '<div style="background:#fff;border-radius:12px;padding:16px;text-align:center;color:var(--tinta-fraca);font-size:12.5px">Nenhuma entrega realizada ainda.</div>';
+      return;
+    }
+
+    container.innerHTML = entregas.map(p => `
+      <div style="background:#fff;border:1px solid var(--borda);border-radius:12px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;font-size:13px">
+        <div>
+          <strong style="color:var(--magenta)">Comanda #${p.numero}</strong> · ${p.endereco ? p.endereco.bairro : ''}<br>
+          <small style="color:var(--tinta-fraca)">${new Date(p.created_at).toLocaleDateString('pt-BR')} às ${new Date(p.created_at).toLocaleTimeString('pt-BR').slice(0,5)}</small>
+        </div>
+        <div style="text-align:right">
+          <span style="color:#008A45;font-weight:800;font-size:14px">R$ ${brl(p.valor_repasse_entregador || p.taxa_entrega || 5.00)}</span><br>
+          <span class="comanda-status-badge ${p.status}">${p.status}</span>
+        </div>
+      </div>
+    `).join('');
+  } catch (e) {}
+};
+
+// 13. Verificação de Rotas Iniciais SPA (/dono, /entregador, /rastrear)
+function verificarRotasIniciais() {
+  const path = window.location.pathname;
+  const search = new URLSearchParams(window.location.search);
+
+  if (path === '/dono' || search.has('dono')) {
+    abrirPainelDono();
+  } else if (path === '/entregador' || search.has('entregador')) {
+    abrirPainelEntregador();
+  } else if (path === '/rastrear' || search.has('rastrear') || search.has('codigo')) {
+    const cod = search.get('codigo') || search.get('rastrear') || '';
+    if (cod) {
+      abrirRastreamentoPedido(cod, cod);
+    } else {
+      abrirModalBuscaRastreio();
+    }
+  }
+}
+
 
 window.addEventListener('load', () => {
   const estadoSalvo = carregarEstadoNavegacao();

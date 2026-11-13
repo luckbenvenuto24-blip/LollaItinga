@@ -1,0 +1,47 @@
+[
+  {
+    "id": "b_centro",
+    "nome": "Centro",
+    "taxa_cliente": 5,
+    "valor_entregador": 4,
+    "tempo_estimado": "30 - 45 min",
+    "ativo": true,
+    "observacao": "Região central"
+  },
+  {
+    "id": "b_zona07",
+    "nome": "Zona 07",
+    "taxa_cliente": 7,
+    "valor_entregador": 5.5,
+    "tempo_estimado": "35 - 50 min",
+    "ativo": true,
+    "observacao": "Próximo à UEM"
+  },
+  {
+    "id": "b_alvorada",
+    "nome": "Jardim Alvorada",
+    "taxa_cliente": 8,
+    "valor_entregador": 6.5,
+    "tempo_estimado": "40 - 55 min",
+    "ativo": true,
+    "observacao": "Zona Norte"
+  },
+  {
+    "id": "b_atinga",
+    "nome": "Itinga",
+    "taxa_cliente": 6,
+    "valor_entregador": 5,
+    "tempo_estimado": "30 - 45 min",
+    "ativo": true,
+    "observacao": "Região Lolla Itinga"
+  },
+  {
+    "id": "b_1794542469045_1ja",
+    "nome": "Bairro Fechado Teste",
+    "taxa_cliente": 10,
+    "valor_entregador": 8,
+    "tempo_estimado": "30 - 50 min",
+    "observacao": "",
+    "ativo": false
+  }
+]
