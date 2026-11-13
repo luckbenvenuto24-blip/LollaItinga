@@ -15,11 +15,13 @@ const BAIRROS_FILE = path.join(ROOT_DIR, 'data/bairros.json');
 const DRIVERS_FILE = path.join(ROOT_DIR, 'data/drivers.json');
 const CUSTOMERS_FILE = path.join(ROOT_DIR, 'data/customers.json');
 const CALLS_FILE = path.join(ROOT_DIR, 'data/delivery_calls.json');
+const PUSH_SUBS_FILE = path.join(ROOT_DIR, 'data/push_subscriptions.json');
 
-// Supabase opcional para sincronização de nuvem
+// Supabase oficial da Sorveteria Lolla (Projeto: lolla / bpxqanowjvlzifxkyypj)
 const SUPABASE_CONFIG = {
-  url: 'https://fflaatbvwwtvckuselkr.supabase.co',
-  anonKey: 'sb_publishable_qctRhqScOKjKgjZWtnlWbA_nA1dsm4Z'
+  url: 'https://bpxqanowjvlzifxkyypj.supabase.co',
+  anonKey: 'sb_publishable_sDqZJ29prJ2mjQ6MLdrpPA_z8lVbmPQ',
+  legacyAnon: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJweHFhbm93anZsemlmeGt5eXBqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxNjcxNDMsImV4cCI6MjA5NTc0MzE0M30.9wEYk9SZGXHb4fWglNuHyyeKlV3dsd51d40HKFBuHrI'
 };
 
 // Funções utilitárias de leitura e escrita seguras
@@ -52,11 +54,12 @@ function writeJson(filePath, data) {
 // Sincronização assíncrona em background com o Supabase
 async function syncToSupabase(recordId, payload) {
   try {
+    const authKey = SUPABASE_CONFIG.legacyAnon || SUPABASE_CONFIG.anonKey;
     fetch(`${SUPABASE_CONFIG.url}/rest/v1/lolla_cardapio_online`, {
       method: 'POST',
       headers: {
-        'apikey': SUPABASE_CONFIG.anonKey,
-        'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`,
+        'apikey': authKey,
+        'Authorization': `Bearer ${authKey}`,
         'Content-Type': 'application/json',
         'Prefer': 'resolution=merge-duplicates'
       },
@@ -66,6 +69,29 @@ async function syncToSupabase(recordId, payload) {
         updated_at: new Date().toISOString()
       })
     }).catch(() => {});
+  } catch (e) {}
+}
+
+// Envio de Notificações Push para Dispositivos Registrados
+function enviarNotificacaoPush(titulo, mensagem, roleFiltro = null, url = '/entregador') {
+  try {
+    const subs = readJson(PUSH_SUBS_FILE, []);
+    const destinatarios = subs.filter(s => !roleFiltro || s.role === roleFiltro);
+    if (!destinatarios.length) return;
+
+    destinatarios.forEach(sub => {
+      if (sub.endpoint && sub.endpoint.startsWith('http')) {
+        fetch(sub.endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: titulo,
+            body: mensagem,
+            url
+          })
+        }).catch(() => {});
+      }
+    });
   } catch (e) {}
 }
 
@@ -543,6 +569,12 @@ const server = http.createServer(async (req, res) => {
 
       sendJson(res, 201, {
         success: true,
+        entregador: {
+          id: newDriver.id,
+          nome: newDriver.nome,
+          telefone: newDriver.telefone,
+          status: newDriver.status
+        },
         status: 'AGUARDANDO_APROVACAO',
         message: 'Cadastro recebido com sucesso! Aguarde a aprovação do Dono da sorveteria para começar a receber chamadas.'
       });
@@ -758,6 +790,28 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
+      // Validação de Disponibilidade dos Itens (Regra 5 - Disponível, Temporariamente Indisponível, Esgotado)
+      const cardapioData = readJson(CARDAPIO_FILE, { itens: [] });
+      const itensCatalogo = Array.isArray(cardapioData.itens) ? cardapioData.itens : [];
+      for (const item of itens) {
+        const nomeItem = (item.n || item.nome || '').trim();
+        const prodCatalogo = itensCatalogo.find(p => (p.n || p.nome || '').trim().toLowerCase() === nomeItem.toLowerCase() || (item.id && p.id === item.id));
+        if (prodCatalogo) {
+          const disp = prodCatalogo.disponibilidade || (prodCatalogo.esgotado ? 'esgotado' : (prodCatalogo.oculto ? 'esgotado' : 'disponivel'));
+          if (disp === 'esgotado') {
+            sendJson(res, 400, {
+              error: `O produto "${nomeItem}" está ESGOTADO no momento. Remova-o do carrinho para prosseguir com o pedido.`
+            });
+            return;
+          } else if (disp === 'temporariamente_indisponivel') {
+            sendJson(res, 400, {
+              error: `O produto "${nomeItem}" está TEMPORARIAMENTE INDISPONÍVEL. Remova-o do carrinho para prosseguir com o pedido.`
+            });
+            return;
+          }
+        }
+      }
+
       let subtotal = 0;
       const itensValidados = itens.map(item => {
         const qtd = Math.max(1, parseInt(item.qtd || 1, 10));
@@ -790,6 +844,11 @@ const server = http.createServer(async (req, res) => {
 
       // Validação do Pagamento
       const formaPag = data.forma_pagamento || 'pix';
+      if (formaPag === 'cartao_entrega' && !settings.pagamento?.cartao_entrega?.ativo) {
+        sendJson(res, 400, { error: 'O pagamento em cartão na maquininha está temporariamente desativado. Escolha PIX ou Dinheiro.' });
+        return;
+      }
+
       let trocoPara = null;
       let trocoValor = null;
 
@@ -810,6 +869,8 @@ const server = http.createServer(async (req, res) => {
 
       const user = getUserFromReq(req);
       const clienteId = (user && user.role === 'cliente') ? user.userId : (data.cliente_id || null);
+
+      const statusPagamentoInicial = formaPag === 'pix' ? 'AGUARDANDO_CONFIRMACAO' : 'PENDENTE';
 
       const novoPedido = {
         id: pedidoId,
@@ -833,6 +894,15 @@ const server = http.createServer(async (req, res) => {
         desconto,
         total,
         forma_pagamento: formaPag,
+        status_pagamento: statusPagamentoInicial,
+        pagamento_historico: [
+          {
+            status: statusPagamentoInicial,
+            timestamp: new Date().toISOString(),
+            responsavel: 'Sistema',
+            observacao: formaPag === 'pix' ? 'Aguardando comprovante/confirmação PIX' : 'Pagamento na entrega'
+          }
+        ],
         troco_para: trocoPara,
         troco_valor: trocoValor,
         status: 'RECEBIDO', // RECEBIDO, ACEITO, EM_PREPARACAO, AGUARDANDO_ENTREGADOR, ENTREGADOR_A_CAMINHO, SAIU_ENTREGA, ENTREGUE, CANCELADO
@@ -843,6 +913,7 @@ const server = http.createServer(async (req, res) => {
             descricao: 'Pedido recebido pelo sistema da Sorveteria Lolla.'
           }
         ],
+        historico_entregadores: [],
         entregador_id: null,
         entregador_nome: null,
         created_at: new Date().toISOString(),
@@ -867,14 +938,7 @@ const server = http.createServer(async (req, res) => {
 
       sendJson(res, 201, {
         success: true,
-        pedido: {
-          id: novoPedido.id,
-          numero: novoPedido.numero,
-          codigo_rastreio: novoPedido.codigo_rastreio,
-          total: novoPedido.total,
-          status: novoPedido.status,
-          created_at: novoPedido.created_at
-        },
+        pedido: novoPedido,
         mensagem: 'Pedido realizado com sucesso!'
       });
     } catch (err) {
@@ -884,27 +948,37 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // Rastreamento Seguro de Pedido (Público via Código ou ID)
-  if (urlPath.startsWith('/api/pedidos/') && urlPath.endsWith('/rastrear') && req.method === 'GET') {
-    const parts = urlPath.split('/');
-    const pedidoId = parts[3];
-    const codigo = params.get('codigo') || '';
+  // Rastreamento Seguro de Pedido (Público via Código direto ou ID + Código)
+  if ((urlPath.startsWith('/api/pedidos/rastreio/') || (urlPath.startsWith('/api/pedidos/') && urlPath.endsWith('/rastrear'))) && req.method === 'GET') {
     const orders = readJson(ORDERS_FILE, []);
-    const pedido = orders.find(o => o.id === pedidoId || String(o.numero) === pedidoId);
+    let pedido = null;
+
+    if (urlPath.startsWith('/api/pedidos/rastreio/')) {
+      const codigoOuId = urlPath.split('/')[4];
+      pedido = orders.find(o =>
+        (o.codigo_rastreio && o.codigo_rastreio.toUpperCase() === codigoOuId.toUpperCase()) ||
+        o.id === codigoOuId ||
+        String(o.numero) === codigoOuId
+      );
+    } else {
+      const parts = urlPath.split('/');
+      const pedidoId = parts[3];
+      const codigo = params.get('codigo') || '';
+      pedido = orders.find(o => o.id === pedidoId || String(o.numero) === pedidoId);
+
+      const user = getUserFromReq(req);
+      const isOwner = user && (user.role === 'dono' || user.role === 'admin');
+      const isOwnerOfOrder = user && user.userId === pedido?.cliente_id;
+      const isCodeMatch = codigo && pedido && pedido.codigo_rastreio && codigo.toUpperCase() === pedido.codigo_rastreio.toUpperCase();
+
+      if (!isOwner && !isOwnerOfOrder && !isCodeMatch) {
+        sendJson(res, 403, { error: 'Acesso não autorizado para rastrear este pedido.' });
+        return;
+      }
+    }
 
     if (!pedido) {
       sendJson(res, 404, { error: 'Pedido não encontrado' });
-      return;
-    }
-
-    // Proteção de acesso: se cliente autenticado, pode ver se é dele; se visitante, exige código de rastreio
-    const user = getUserFromReq(req);
-    const isOwner = user && (user.role === 'dono' || user.role === 'admin');
-    const isOwnerOfOrder = user && user.userId === pedido.cliente_id;
-    const isCodeMatch = codigo && pedido.codigo_rastreio && codigo.toUpperCase() === pedido.codigo_rastreio.toUpperCase();
-
-    if (!isOwner && !isOwnerOfOrder && !isCodeMatch) {
-      sendJson(res, 403, { error: 'Acesso não autorizado para rastrear este pedido.' });
       return;
     }
 
@@ -1123,6 +1197,18 @@ const server = http.createServer(async (req, res) => {
         descricao: `Pedido cancelado pelo Dono. Motivo: ${pedido.motivo_cancelamento}`
       });
 
+      // Se o pedido foi pago via PIX ou estava confirmado, registra necessidade de reembolso
+      if (pedido.forma_pagamento === 'pix' && ['CONFIRMADO', 'AGUARDANDO_CONFIRMACAO'].includes(pedido.status_pagamento)) {
+        pedido.status_pagamento = 'REEMBOLSO_NECESSARIO';
+        if (!Array.isArray(pedido.pagamento_historico)) pedido.pagamento_historico = [];
+        pedido.pagamento_historico.push({
+          status: 'REEMBOLSO_NECESSARIO',
+          timestamp: new Date().toISOString(),
+          responsavel: 'Dono',
+          observacao: 'Pedido cancelado após pagamento. Reembolso pendente ao cliente.'
+        });
+      }
+
       // Se havia chamada aberta de entrega, encerra
       const calls = readJson(CALLS_FILE, []);
       const activeCall = calls.find(c => c.pedido_id === pedido.id && c.status === 'PENDENTE');
@@ -1147,7 +1233,7 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // Chamar Entregador (Disparo de Corrida pelo Dono)
+  // Chamar Entregador (Disparo de Corrida pelo Dono - Regra 15: Enviada para TODOS os entregadores aprovados, online ou offline)
   if (urlPath.startsWith('/api/dono/pedidos/') && urlPath.endsWith('/chamar-entregador') && req.method === 'POST') {
     if (!requireOwnerAuth()) {
       sendJson(res, 401, { error: 'Acesso restrito ao Dono' });
@@ -1161,13 +1247,13 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    // Verifica entregadores online e aprovados
+    // Regra 15: Notifica TODOS os entregadores cadastrados e aprovados (independente de online ou offline)
     const drivers = readJson(DRIVERS_FILE, []);
-    const entregadoresDisponiveis = drivers.filter(d => d.status === 'APROVADO' && d.online);
+    const entregadoresAprovados = drivers.filter(d => d.status === 'APROVADO');
 
-    if (!entregadoresDisponiveis.length) {
+    if (!entregadoresAprovados.length) {
       sendJson(res, 400, {
-        error: 'Nenhum entregador aprovado está online no momento. Tente novamente em instantes.'
+        error: 'Nenhum entregador aprovado está cadastrado no sistema. Cadastre e aprove ao menos um entregador.'
       });
       return;
     }
@@ -1179,7 +1265,7 @@ const server = http.createServer(async (req, res) => {
     pedido.status_historico.push({
       status: 'AGUARDANDO_ENTREGADOR',
       timestamp: new Date().toISOString(),
-      descricao: 'Chamada de entrega enviada aos motoboys online.'
+      descricao: `Chamada de entrega enviada para ${entregadoresAprovados.length} entregador(es) aprovados (online e offline).`
     });
     writeJson(ORDERS_FILE, orders);
 
@@ -1203,20 +1289,28 @@ const server = http.createServer(async (req, res) => {
       status: 'PENDENTE', // PENDENTE, ACEITA, RECUSADA, CANCELADA, EXPIRADA
       recusado_por: [],
       created_at: new Date().toISOString(),
-      expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString()
+      expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString()
     };
 
     calls.push(novaChamada);
     writeJson(CALLS_FILE, calls);
 
-    // Notifica instantaneamente todos os entregadores online via barramento
+    // Notifica instantaneamente todos os entregadores aprovados via barramento de eventos
     eventBus.emit('nova_chamada_entrega', novaChamada, 'entregador');
+
+    // Dispara Notificações Web Push para motoboys mesmo com o app em segundo plano
+    enviarNotificacaoPush(
+      `🍦 Nova Entrega #${pedido.numero}!`,
+      `Bairro: ${pedido.endereco.bairro} | Remuneração: R$ ${(novaChamada.valor_remuneracao || 5).toFixed(2)}. Toque para aceitar!`,
+      'entregador',
+      '/entregador'
+    );
 
     sendJson(res, 200, {
       success: true,
       chamadaId: novaChamada.id,
-      entregadoresNotificados: entregadoresDisponiveis.length,
-      message: `Chamada enviada com sucesso para ${entregadoresDisponiveis.length} entregador(es) online!`
+      entregadoresNotificados: entregadoresAprovados.length,
+      message: `Chamada enviada com sucesso para ${entregadoresAprovados.length} entregador(es) cadastrado(s) e aprovado(s)!`
     });
     return;
   }
@@ -1597,6 +1691,113 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // Entregador: Cancelar Entrega Aceita (Regra Especial 16 - Devolve para a fila e chama outros entregadores)
+  if (urlPath.startsWith('/api/entregador/pedidos/') && urlPath.endsWith('/cancelar') && req.method === 'POST') {
+    const user = getUserFromReq(req);
+    if (!user || user.role !== 'entregador') {
+      sendJson(res, 401, { error: 'Acesso restrito a entregadores' });
+      return;
+    }
+    const pedidoId = urlPath.split('/')[4];
+    const orders = readJson(ORDERS_FILE, []);
+    const pedido = orders.find(o => o.id === pedidoId);
+    if (!pedido || pedido.entregador_id !== user.userId) {
+      sendJson(res, 403, { error: 'Este pedido não está sob sua responsabilidade' });
+      return;
+    }
+
+    try {
+      const raw = await readBody(req);
+      const { motivo } = raw ? JSON.parse(raw) : { motivo: 'Imprevisto com o entregador' };
+
+      const drivers = readJson(DRIVERS_FILE, []);
+      const driver = drivers.find(d => d.id === user.userId);
+      const driverNome = driver ? driver.nome : 'Entregador';
+
+      // 1. Registra no histórico de entregadores
+      if (!Array.isArray(pedido.historico_entregadores)) pedido.historico_entregadores = [];
+      pedido.historico_entregadores.push({
+        entregador_id: user.userId,
+        entregador_nome: driverNome,
+        aceito_em: pedido.updated_at,
+        cancelado_em: new Date().toISOString(),
+        motivo: motivo || 'Cancelado pelo entregador'
+      });
+
+      // 2. Libera entregador anterior da responsabilidade e retira vínculo
+      pedido.status = 'AGUARDANDO_ENTREGADOR';
+      pedido.entregador_id = null;
+      pedido.entregador_nome = null;
+      pedido.updated_at = new Date().toISOString();
+      if (!Array.isArray(pedido.status_historico)) pedido.status_historico = [];
+      pedido.status_historico.push({
+        status: 'AGUARDANDO_ENTREGADOR',
+        timestamp: new Date().toISOString(),
+        descricao: `O entregador ${driverNome} cancelou o aceite (${motivo || 'Sem motivo informado'}). Pedido retornado para a fila de entregas.`
+      });
+
+      if (driver) {
+        driver.activeDeliveryId = null;
+        writeJson(DRIVERS_FILE, drivers);
+      }
+      writeJson(ORDERS_FILE, orders);
+      syncToSupabase('pedidos', orders);
+
+      // 3. Atualiza chamada anterior e cria NOVA chamada para TODOS os demais entregadores aprovados
+      const calls = readJson(CALLS_FILE, []);
+      const callAntiga = calls.find(c => c.pedido_id === pedido.id && c.status === 'ACEITA');
+      if (callAntiga) {
+        callAntiga.status = 'CANCELADA_ENTREGADOR';
+        callAntiga.motivo_cancelamento = motivo;
+      }
+
+      const novaChamada = {
+        id: 'call_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+        pedido_id: pedido.id,
+        pedido_numero: pedido.numero,
+        bairro: pedido.endereco.bairro,
+        endereco_completo: `${pedido.endereco.rua}, ${pedido.endereco.numero} - ${pedido.endereco.bairro}`,
+        referencia: pedido.endereco.referencia || '',
+        valor_remuneracao: pedido.valor_repasse_entregador || pedido.taxa_entrega || 5.00,
+        forma_pagamento: pedido.forma_pagamento,
+        troco_valor: pedido.troco_valor || null,
+        status: 'PENDENTE',
+        recusado_por: [user.userId], // Não mostra para quem acabou de cancelar
+        tentativa: ((callAntiga && callAntiga.tentativa) || 1) + 1,
+        created_at: new Date().toISOString(),
+        expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString()
+      };
+      calls.push(novaChamada);
+      writeJson(CALLS_FILE, calls);
+
+      // 4. Notifica TODOS os demais entregadores aprovados e notifica o Dono
+      eventBus.emit('nova_chamada_entrega', novaChamada, 'entregador');
+      eventBus.emit('entregador_cancelou_entrega', {
+        pedidoId: pedido.id,
+        numero: pedido.numero,
+        entregador_id: user.userId,
+        entregador_nome: driverNome,
+        motivo
+      });
+
+      enviarNotificacaoPush(
+        `🚨 Entrega #${pedido.numero} redistribuída!`,
+        `Corrida para ${pedido.endereco.bairro} disponível novamente (R$ ${(novaChamada.valor_remuneracao || 5).toFixed(2)}).`,
+        'entregador',
+        '/entregador'
+      );
+
+      sendJson(res, 200, {
+        success: true,
+        message: 'Entrega cancelada e devolvida à fila com sucesso. Nova chamada enviada aos outros entregadores.',
+        novaChamadaId: novaChamada.id
+      });
+    } catch (err) {
+      sendJson(res, 400, { error: 'Erro ao cancelar entrega' });
+    }
+    return;
+  }
+
   // Histórico de Entregas do Entregador
   if (urlPath === '/api/entregador/historico' && req.method === 'GET') {
     const user = getUserFromReq(req);
@@ -1608,6 +1809,139 @@ const server = http.createServer(async (req, res) => {
     const minhasEntregas = orders.filter(o => o.entregador_id === user.userId);
     minhasEntregas.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
     sendJson(res, 200, minhasEntregas);
+    return;
+  }
+
+  // Dono: Atualizar Situação do Pagamento (PIX confirmado, Recusado, Estornado, Reembolso)
+  if (urlPath.startsWith('/api/dono/pedidos/') && urlPath.endsWith('/pagamento') && req.method === 'PUT') {
+    if (!requireOwnerAuth()) {
+      sendJson(res, 401, { error: 'Acesso restrito ao Dono' });
+      return;
+    }
+    const pedidoId = urlPath.split('/')[4];
+    const orders = readJson(ORDERS_FILE, []);
+    const pedido = orders.find(o => o.id === pedidoId);
+    if (!pedido) {
+      sendJson(res, 404, { error: 'Pedido não encontrado' });
+      return;
+    }
+
+    try {
+      const raw = await readBody(req);
+      const { statusPagamento, observacao } = JSON.parse(raw);
+      const statusPermitidos = ['PENDENTE', 'AGUARDANDO_CONFIRMACAO', 'CONFIRMADO', 'RECUSADO', 'ESTORNADO', 'REEMBOLSO_NECESSARIO'];
+      if (!statusPermitidos.includes(statusPagamento)) {
+        sendJson(res, 400, { error: 'Status de pagamento inválido' });
+        return;
+      }
+      pedido.status_pagamento = statusPagamento;
+      pedido.updated_at = new Date().toISOString();
+      if (!Array.isArray(pedido.pagamento_historico)) pedido.pagamento_historico = [];
+      pedido.pagamento_historico.push({
+        status: statusPagamento,
+        timestamp: new Date().toISOString(),
+        responsavel: 'Dono',
+        observacao: observacao || ''
+      });
+      writeJson(ORDERS_FILE, orders);
+      syncToSupabase('pedidos', orders);
+
+      eventBus.emit('pagamento_atualizado', {
+        pedidoId: pedido.id,
+        numero: pedido.numero,
+        statusPagamento
+      });
+
+      sendJson(res, 200, { success: true, pedido, statusPagamento });
+    } catch (err) {
+      sendJson(res, 400, { error: 'Dados inválidos' });
+    }
+    return;
+  }
+
+  // Web Push: Registrar Inscrição de Dispositivo
+  if (urlPath === '/api/push/subscribe' && req.method === 'POST') {
+    try {
+      const raw = await readBody(req);
+      const subData = JSON.parse(raw);
+      if (!subData || !subData.endpoint) {
+        sendJson(res, 400, { error: 'Inscrição push inválida' });
+        return;
+      }
+
+      const user = getUserFromReq(req);
+      const subs = readJson(PUSH_SUBS_FILE, []);
+      const index = subs.findIndex(s => s.endpoint === subData.endpoint);
+
+      const novoSub = {
+        endpoint: subData.endpoint,
+        keys: subData.keys || {},
+        role: (user && user.role) || subData.role || 'cliente',
+        userId: (user && user.userId) || subData.userId || null,
+        updated_at: new Date().toISOString()
+      };
+
+      if (index >= 0) {
+        subs[index] = novoSub;
+      } else {
+        subs.push(novoSub);
+      }
+
+      writeJson(PUSH_SUBS_FILE, subs);
+      sendJson(res, 200, { success: true, message: 'Inscrição Web Push registrada com sucesso!' });
+    } catch (err) {
+      sendJson(res, 400, { error: 'Dados inválidos' });
+    }
+    return;
+  }
+
+  // ADM / Dono: Atualizar Item de Produto (Preço, Preço Antigo e Disponibilidade)
+  if (urlPath === '/api/admin/produtos/item' && req.method === 'PUT') {
+    const user = getUserFromReq(req);
+    if (!user || (user.role !== 'admin' && user.role !== 'dono')) {
+      sendJson(res, 401, { error: 'Acesso restrito ao Administrador ou Dono' });
+      return;
+    }
+
+    try {
+      const raw = await readBody(req);
+      const { nome, preco, precoAntigo, disponibilidade } = JSON.parse(raw);
+
+      if (!nome) {
+        sendJson(res, 400, { error: 'Nome do produto é obrigatório' });
+        return;
+      }
+
+      const cardapioData = readJson(CARDAPIO_FILE, { itens: [] });
+      const itens = Array.isArray(cardapioData.itens) ? cardapioData.itens : [];
+      const prod = itens.find(p => (p.n || p.nome || '').trim().toLowerCase() === nome.trim().toLowerCase());
+
+      if (!prod) {
+        sendJson(res, 404, { error: 'Produto não encontrado no cardápio' });
+        return;
+      }
+
+      if (preco !== undefined) prod.p = Number(preco);
+      if (precoAntigo !== undefined) prod.po = Number(precoAntigo);
+      if (disponibilidade !== undefined) {
+        prod.disponibilidade = disponibilidade; // 'disponivel', 'temporariamente_indisponivel', 'esgotado'
+        prod.esgotado = (disponibilidade === 'esgotado');
+        prod.oculto = (disponibilidade === 'temporariamente_indisponivel');
+      }
+
+      writeJson(CARDAPIO_FILE, cardapioData);
+      syncToSupabase('principal', cardapioData);
+
+      eventBus.emit('produto_atualizado', {
+        nome: prod.n,
+        preco: prod.p,
+        disponibilidade: prod.disponibilidade
+      });
+
+      sendJson(res, 200, { success: true, produto: prod });
+    } catch (err) {
+      sendJson(res, 400, { error: 'Dados inválidos' });
+    }
     return;
   }
 
@@ -1739,6 +2073,27 @@ const server = http.createServer(async (req, res) => {
       writeJson(SETTINGS_FILE, settings);
       syncToSupabase('config_operacao', settings);
       sendJson(res, 200, { success: true, message: 'Configurações de pagamento salvas!' });
+    } catch (err) {
+      sendJson(res, 400, { error: 'Dados inválidos' });
+    }
+    return;
+  }
+
+  // Pedido Mínimo: Atualizar (Dono - Regra 4)
+  if (urlPath === '/api/dono/pedido-minimo' && req.method === 'PUT') {
+    if (!requireOwnerAuth()) {
+      sendJson(res, 401, { error: 'Acesso restrito' });
+      return;
+    }
+    try {
+      const raw = await readBody(req);
+      const { pedidoMinimo } = JSON.parse(raw);
+      const settings = readJson(SETTINGS_FILE, {});
+      settings.pedido_minimo = Number(pedidoMinimo) || 0;
+      writeJson(SETTINGS_FILE, settings);
+      syncToSupabase('config_operacao', settings);
+      eventBus.emit('pedido_minimo_atualizado', { pedidoMinimo: settings.pedido_minimo });
+      sendJson(res, 200, { success: true, pedidoMinimo: settings.pedido_minimo });
     } catch (err) {
       sendJson(res, 400, { error: 'Dados inválidos' });
     }

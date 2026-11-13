@@ -1,29 +1,53 @@
 {
   "horarios": {
-    "segunda": { "aberto": true, "inicio": "13:00", "fim": "23:00" },
-    "terca": { "aberto": true, "inicio": "13:00", "fim": "23:00" },
-    "quarta": { "aberto": true, "inicio": "13:00", "fim": "23:00" },
-    "quinta": { "aberto": true, "inicio": "13:00", "fim": "23:00" },
-    "sexta": { "aberto": true, "inicio": "13:00", "fim": "23:59" },
-    "sabado": { "aberto": true, "inicio": "12:00", "fim": "23:59" },
-    "domingo": { "aberto": true, "inicio": "12:00", "fim": "23:00" }
+    "segunda": {
+      "aberto": true,
+      "inicio": "00:00",
+      "fim": "23:59"
+    },
+    "terca": {
+      "aberto": true,
+      "inicio": "00:00",
+      "fim": "23:59"
+    },
+    "quarta": {
+      "aberto": true,
+      "inicio": "00:00",
+      "fim": "23:59"
+    },
+    "quinta": {
+      "aberto": true,
+      "inicio": "00:00",
+      "fim": "23:59"
+    },
+    "sexta": {
+      "aberto": true,
+      "inicio": "00:00",
+      "fim": "23:59"
+    },
+    "sabado": {
+      "aberto": true,
+      "inicio": "00:00",
+      "fim": "23:59"
+    },
+    "domingo": {
+      "aberto": true,
+      "inicio": "00:00",
+      "fim": "23:59"
+    }
   },
   "excecoes": [],
   "pagamento": {
-    "pix": {
-      "ativo": true,
-      "tipo": "telefone",
-      "chave": "5547974003728",
-      "titular": "Sorveteria Lolla",
-      "instituicao": "Banco Digital"
-    },
     "dinheiro": {
       "ativo": true
     },
+    "pix": {
+      "ativo": true
+    },
     "cartao_entrega": {
-      "ativo": false
+      "ativo": true
     }
   },
-  "pedido_minimo": 30.00,
+  "pedido_minimo": 30,
   "tempo_medio_entrega": "40 - 60 min"
 }

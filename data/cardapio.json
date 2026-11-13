@@ -64,7 +64,10 @@
       "imgRot": 0,
       "imgPosX": 0,
       "imgPosY": 0,
-      "imgScale": 100
+      "imgScale": 100,
+      "disponibilidade": "disponivel",
+      "esgotado": false,
+      "oculto": false
     },
     {
       "n": "Açaí com Nutella - Copo 300ml",

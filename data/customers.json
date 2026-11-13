@@ -1,1 +1,17 @@
-[]
+[
+  {
+    "id": "cli_1794543751928_nawk",
+    "nome": "Cliente Cadastrado Teste",
+    "telefone": "44998885734",
+    "email": "cliente@teste.com",
+    "passwordHash": "fbd6ca5e5f7b5890f3ddb2762c159804fe9d30ee200e5e7becd38ea8e1236532",
+    "enderecos": [
+      {
+        "rua": "Av. Mandacaru",
+        "numero": "500",
+        "bairro": "Zona 07"
+      }
+    ],
+    "createdAt": "2026-11-13T04:22:31.928Z"
+  }
+]

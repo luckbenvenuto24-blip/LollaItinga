@@ -1,1 +1,1331 @@
-[]
+[
+  {
+    "id": "ped_1794546382542_n36m",
+    "numero": 1019,
+    "codigo_rastreio": "L-84HQ98RH",
+    "cliente_id": null,
+    "cliente_nome": "Teste Cartão Ativado",
+    "cliente_telefone": "47990001122",
+    "endereco": {
+      "rua": "Rua A",
+      "numero": "1",
+      "complemento": "",
+      "bairro": "Centro",
+      "referencia": "",
+      "cep": ""
+    },
+    "itens": [
+      {
+        "id": null,
+        "nome": "Açaí Tradicional - Copo 500ml",
+        "preco": 18,
+        "qtd": 2,
+        "subtotal": 36,
+        "opcoes": null,
+        "observacao": ""
+      }
+    ],
+    "subtotal": 36,
+    "taxa_entrega": 5,
+    "valor_repasse_entregador": 4,
+    "desconto": 0,
+    "total": 41,
+    "forma_pagamento": "cartao_entrega",
+    "status_pagamento": "PENDENTE",
+    "pagamento_historico": [
+      {
+        "status": "PENDENTE",
+        "timestamp": "2026-11-13T05:06:22.542Z",
+        "responsavel": "Sistema",
+        "observacao": "Pagamento na entrega"
+      }
+    ],
+    "troco_para": null,
+    "troco_valor": null,
+    "status": "RECEBIDO",
+    "status_historico": [
+      {
+        "status": "RECEBIDO",
+        "timestamp": "2026-11-13T05:06:22.542Z",
+        "descricao": "Pedido recebido pelo sistema da Sorveteria Lolla."
+      }
+    ],
+    "historico_entregadores": [],
+    "entregador_id": null,
+    "entregador_nome": null,
+    "created_at": "2026-11-13T05:06:22.542Z",
+    "updated_at": "2026-11-13T05:06:22.542Z"
+  },
+  {
+    "id": "ped_1794546382520_lunf",
+    "numero": 1018,
+    "codigo_rastreio": "L-EQBJDRPM",
+    "cliente_id": null,
+    "cliente_nome": "Lucas Dinheiro",
+    "cliente_telefone": "47990001122",
+    "endereco": {
+      "rua": "Rua A",
+      "numero": "1",
+      "complemento": "",
+      "bairro": "Centro",
+      "referencia": "",
+      "cep": ""
+    },
+    "itens": [
+      {
+        "id": null,
+        "nome": "Açaí Tradicional - Copo 500ml",
+        "preco": 18,
+        "qtd": 2,
+        "subtotal": 36,
+        "opcoes": null,
+        "observacao": ""
+      }
+    ],
+    "subtotal": 36,
+    "taxa_entrega": 5,
+    "valor_repasse_entregador": 4,
+    "desconto": 0,
+    "total": 41,
+    "forma_pagamento": "dinheiro",
+    "status_pagamento": "PENDENTE",
+    "pagamento_historico": [
+      {
+        "status": "PENDENTE",
+        "timestamp": "2026-11-13T05:06:22.520Z",
+        "responsavel": "Sistema",
+        "observacao": "Pagamento na entrega"
+      }
+    ],
+    "troco_para": 50,
+    "troco_valor": 9,
+    "status": "RECEBIDO",
+    "status_historico": [
+      {
+        "status": "RECEBIDO",
+        "timestamp": "2026-11-13T05:06:22.520Z",
+        "descricao": "Pedido recebido pelo sistema da Sorveteria Lolla."
+      }
+    ],
+    "historico_entregadores": [],
+    "entregador_id": null,
+    "entregador_nome": null,
+    "created_at": "2026-11-13T05:06:22.520Z",
+    "updated_at": "2026-11-13T05:06:22.520Z"
+  },
+  {
+    "id": "ped_1794546382375_r18w",
+    "numero": 1017,
+    "codigo_rastreio": "L-SPMF49VJ",
+    "cliente_id": null,
+    "cliente_nome": "Mariana Silva",
+    "cliente_telefone": "47998877665",
+    "endereco": {
+      "rua": "Av. Brasil",
+      "numero": "500",
+      "complemento": "Apto 12",
+      "bairro": "Centro",
+      "referencia": "",
+      "cep": ""
+    },
+    "itens": [
+      {
+        "id": null,
+        "nome": "Açaí Tradicional - Copo 500ml",
+        "preco": 18,
+        "qtd": 2,
+        "subtotal": 36,
+        "opcoes": null,
+        "observacao": ""
+      }
+    ],
+    "subtotal": 36,
+    "taxa_entrega": 5,
+    "valor_repasse_entregador": 4,
+    "desconto": 0,
+    "total": 41,
+    "forma_pagamento": "pix",
+    "status_pagamento": "CONFIRMADO",
+    "pagamento_historico": [
+      {
+        "status": "AGUARDANDO_CONFIRMACAO",
+        "timestamp": "2026-11-13T05:06:22.375Z",
+        "responsavel": "Sistema",
+        "observacao": "Aguardando comprovante/confirmação PIX"
+      },
+      {
+        "status": "CONFIRMADO",
+        "timestamp": "2026-11-13T05:06:22.513Z",
+        "responsavel": "Dono",
+        "observacao": "Comprovante conferido via Extrato Bancário"
+      }
+    ],
+    "troco_para": null,
+    "troco_valor": null,
+    "status": "ENTREGUE",
+    "status_historico": [
+      {
+        "status": "RECEBIDO",
+        "timestamp": "2026-11-13T05:06:22.375Z",
+        "descricao": "Pedido recebido pelo sistema da Sorveteria Lolla."
+      },
+      {
+        "status": "EM_PREPARACAO",
+        "timestamp": "2026-11-13T05:06:22.434Z",
+        "descricao": "Status alterado para EM_PREPARACAO pelo Dono."
+      },
+      {
+        "status": "AGUARDANDO_ENTREGADOR",
+        "timestamp": "2026-11-13T05:06:22.439Z",
+        "descricao": "Chamada de entrega enviada para 10 entregador(es) aprovados (online e offline)."
+      },
+      {
+        "status": "ENTREGADOR_A_CAMINHO",
+        "timestamp": "2026-11-13T05:06:22.463Z",
+        "descricao": "Chamada aceita pelo entregador Carlos Motoboy 1. Indo retirar na loja."
+      },
+      {
+        "status": "AGUARDANDO_ENTREGADOR",
+        "timestamp": "2026-11-13T05:06:22.474Z",
+        "descricao": "O entregador Carlos Motoboy 1 cancelou o aceite (Pneu da moto furou na saída). Pedido retornado para a fila de entregas."
+      },
+      {
+        "status": "ENTREGADOR_A_CAMINHO",
+        "timestamp": "2026-11-13T05:06:22.486Z",
+        "descricao": "Chamada aceita pelo entregador Roberto Motoboy 2. Indo retirar na loja."
+      },
+      {
+        "status": "ENTREGADOR_A_CAMINHO",
+        "etapa_entregador": "CHEGOU_SORVETERIA",
+        "timestamp": "2026-11-13T05:06:22.494Z",
+        "descricao": "Entregador chegou à sorveteria e aguarda a embalagem."
+      },
+      {
+        "status": "SAIU_ENTREGA",
+        "etapa_entregador": "RETIRADO",
+        "timestamp": "2026-11-13T05:06:22.501Z",
+        "descricao": "Pedido retirado na sorveteria e a caminho do endereço de entrega!"
+      },
+      {
+        "status": "ENTREGUE",
+        "etapa_entregador": "ENTREGUE",
+        "timestamp": "2026-11-13T05:06:22.506Z",
+        "descricao": "Pedido entregue com sucesso ao cliente!"
+      }
+    ],
+    "historico_entregadores": [
+      {
+        "entregador_id": "mot_1794546382401_qglw",
+        "entregador_nome": "Carlos Motoboy 1",
+        "aceito_em": "2026-11-13T05:06:22.463Z",
+        "cancelado_em": "2026-11-13T05:06:22.474Z",
+        "motivo": "Pneu da moto furou na saída"
+      }
+    ],
+    "entregador_id": "mot_1794546382408_njlo",
+    "entregador_nome": "Roberto Motoboy 2",
+    "created_at": "2026-11-13T05:06:22.375Z",
+    "updated_at": "2026-11-13T05:06:22.513Z"
+  },
+  {
+    "id": "ped_1794546382364_7jw0",
+    "numero": 1016,
+    "codigo_rastreio": "L-2Z052JN6",
+    "cliente_id": null,
+    "cliente_nome": "Cliente Teste",
+    "cliente_telefone": "47999990001",
+    "endereco": {
+      "rua": "Rua das Flores",
+      "numero": "100",
+      "complemento": "",
+      "bairro": "Centro",
+      "referencia": "",
+      "cep": ""
+    },
+    "itens": [
+      {
+        "id": null,
+        "nome": "Açaí Tradicional - Copo 300ml",
+        "preco": 15,
+        "qtd": 1,
+        "subtotal": 15,
+        "opcoes": null,
+        "observacao": ""
+      }
+    ],
+    "subtotal": 15,
+    "taxa_entrega": 5,
+    "valor_repasse_entregador": 4,
+    "desconto": 0,
+    "total": 20,
+    "forma_pagamento": "pix",
+    "status_pagamento": "AGUARDANDO_CONFIRMACAO",
+    "pagamento_historico": [
+      {
+        "status": "AGUARDANDO_CONFIRMACAO",
+        "timestamp": "2026-11-13T05:06:22.364Z",
+        "responsavel": "Sistema",
+        "observacao": "Aguardando comprovante/confirmação PIX"
+      }
+    ],
+    "troco_para": null,
+    "troco_valor": null,
+    "status": "RECEBIDO",
+    "status_historico": [
+      {
+        "status": "RECEBIDO",
+        "timestamp": "2026-11-13T05:06:22.364Z",
+        "descricao": "Pedido recebido pelo sistema da Sorveteria Lolla."
+      }
+    ],
+    "historico_entregadores": [],
+    "entregador_id": null,
+    "entregador_nome": null,
+    "created_at": "2026-11-13T05:06:22.364Z",
+    "updated_at": "2026-11-13T05:06:22.364Z"
+  },
+  {
+    "id": "ped_1794546234635_ap7r",
+    "numero": 1015,
+    "codigo_rastreio": "L-14FLNNRW",
+    "cliente_id": null,
+    "cliente_nome": "Lucas Dinheiro",
+    "cliente_telefone": "47990001122",
+    "endereco": {
+      "rua": "Rua A",
+      "numero": "1",
+      "complemento": "",
+      "bairro": "Centro",
+      "referencia": "",
+      "cep": ""
+    },
+    "itens": [
+      {
+        "id": null,
+        "nome": "Açaí Tradicional - Copo 500ml",
+        "preco": 18,
+        "qtd": 2,
+        "subtotal": 36,
+        "opcoes": null,
+        "observacao": ""
+      }
+    ],
+    "subtotal": 36,
+    "taxa_entrega": 5,
+    "valor_repasse_entregador": 4,
+    "desconto": 0,
+    "total": 41,
+    "forma_pagamento": "dinheiro",
+    "status_pagamento": "PENDENTE",
+    "pagamento_historico": [
+      {
+        "status": "PENDENTE",
+        "timestamp": "2026-11-13T05:03:54.635Z",
+        "responsavel": "Sistema",
+        "observacao": "Pagamento na entrega"
+      }
+    ],
+    "troco_para": 50,
+    "troco_valor": 9,
+    "status": "RECEBIDO",
+    "status_historico": [
+      {
+        "status": "RECEBIDO",
+        "timestamp": "2026-11-13T05:03:54.635Z",
+        "descricao": "Pedido recebido pelo sistema da Sorveteria Lolla."
+      }
+    ],
+    "historico_entregadores": [],
+    "entregador_id": null,
+    "entregador_nome": null,
+    "created_at": "2026-11-13T05:03:54.635Z",
+    "updated_at": "2026-11-13T05:03:54.635Z"
+  },
+  {
+    "id": "ped_1794546234515_dsiy",
+    "numero": 1014,
+    "codigo_rastreio": "L-NAVE5RSE",
+    "cliente_id": null,
+    "cliente_nome": "Mariana Silva",
+    "cliente_telefone": "47998877665",
+    "endereco": {
+      "rua": "Av. Brasil",
+      "numero": "500",
+      "complemento": "Apto 12",
+      "bairro": "Centro",
+      "referencia": "",
+      "cep": ""
+    },
+    "itens": [
+      {
+        "id": null,
+        "nome": "Açaí Tradicional - Copo 500ml",
+        "preco": 18,
+        "qtd": 2,
+        "subtotal": 36,
+        "opcoes": null,
+        "observacao": ""
+      }
+    ],
+    "subtotal": 36,
+    "taxa_entrega": 5,
+    "valor_repasse_entregador": 4,
+    "desconto": 0,
+    "total": 41,
+    "forma_pagamento": "pix",
+    "status_pagamento": "CONFIRMADO",
+    "pagamento_historico": [
+      {
+        "status": "AGUARDANDO_CONFIRMACAO",
+        "timestamp": "2026-11-13T05:03:54.515Z",
+        "responsavel": "Sistema",
+        "observacao": "Aguardando comprovante/confirmação PIX"
+      },
+      {
+        "status": "CONFIRMADO",
+        "timestamp": "2026-11-13T05:03:54.626Z",
+        "responsavel": "Dono",
+        "observacao": "Comprovante conferido via Extrato Bancário"
+      }
+    ],
+    "troco_para": null,
+    "troco_valor": null,
+    "status": "ENTREGUE",
+    "status_historico": [
+      {
+        "status": "RECEBIDO",
+        "timestamp": "2026-11-13T05:03:54.515Z",
+        "descricao": "Pedido recebido pelo sistema da Sorveteria Lolla."
+      },
+      {
+        "status": "EM_PREPARACAO",
+        "timestamp": "2026-11-13T05:03:54.554Z",
+        "descricao": "Status alterado para EM_PREPARACAO pelo Dono."
+      },
+      {
+        "status": "AGUARDANDO_ENTREGADOR",
+        "timestamp": "2026-11-13T05:03:54.559Z",
+        "descricao": "Chamada de entrega enviada para 8 entregador(es) aprovados (online e offline)."
+      },
+      {
+        "status": "ENTREGADOR_A_CAMINHO",
+        "timestamp": "2026-11-13T05:03:54.580Z",
+        "descricao": "Chamada aceita pelo entregador Carlos Motoboy 1. Indo retirar na loja."
+      },
+      {
+        "status": "AGUARDANDO_ENTREGADOR",
+        "timestamp": "2026-11-13T05:03:54.591Z",
+        "descricao": "O entregador Carlos Motoboy 1 cancelou o aceite (Pneu da moto furou na saída). Pedido retornado para a fila de entregas."
+      },
+      {
+        "status": "ENTREGADOR_A_CAMINHO",
+        "timestamp": "2026-11-13T05:03:54.604Z",
+        "descricao": "Chamada aceita pelo entregador Roberto Motoboy 2. Indo retirar na loja."
+      },
+      {
+        "status": "ENTREGADOR_A_CAMINHO",
+        "etapa_entregador": "CHEGOU_SORVETERIA",
+        "timestamp": "2026-11-13T05:03:54.609Z",
+        "descricao": "Entregador chegou à sorveteria e aguarda a embalagem."
+      },
+      {
+        "status": "SAIU_ENTREGA",
+        "etapa_entregador": "RETIRADO",
+        "timestamp": "2026-11-13T05:03:54.613Z",
+        "descricao": "Pedido retirado na sorveteria e a caminho do endereço de entrega!"
+      },
+      {
+        "status": "ENTREGUE",
+        "etapa_entregador": "ENTREGUE",
+        "timestamp": "2026-11-13T05:03:54.617Z",
+        "descricao": "Pedido entregue com sucesso ao cliente!"
+      }
+    ],
+    "historico_entregadores": [
+      {
+        "entregador_id": "mot_1794546234531_oqdw",
+        "entregador_nome": "Carlos Motoboy 1",
+        "aceito_em": "2026-11-13T05:03:54.580Z",
+        "cancelado_em": "2026-11-13T05:03:54.591Z",
+        "motivo": "Pneu da moto furou na saída"
+      }
+    ],
+    "entregador_id": "mot_1794546234537_yu5q",
+    "entregador_nome": "Roberto Motoboy 2",
+    "created_at": "2026-11-13T05:03:54.515Z",
+    "updated_at": "2026-11-13T05:03:54.626Z"
+  },
+  {
+    "id": "ped_1794546234497_fxvy",
+    "numero": 1013,
+    "codigo_rastreio": "L-9V9F7NL2",
+    "cliente_id": null,
+    "cliente_nome": "Cliente Teste",
+    "cliente_telefone": "47999990001",
+    "endereco": {
+      "rua": "Rua das Flores",
+      "numero": "100",
+      "complemento": "",
+      "bairro": "Centro",
+      "referencia": "",
+      "cep": ""
+    },
+    "itens": [
+      {
+        "id": null,
+        "nome": "Açaí Tradicional - Copo 300ml",
+        "preco": 15,
+        "qtd": 1,
+        "subtotal": 15,
+        "opcoes": null,
+        "observacao": ""
+      }
+    ],
+    "subtotal": 15,
+    "taxa_entrega": 5,
+    "valor_repasse_entregador": 4,
+    "desconto": 0,
+    "total": 20,
+    "forma_pagamento": "pix",
+    "status_pagamento": "AGUARDANDO_CONFIRMACAO",
+    "pagamento_historico": [
+      {
+        "status": "AGUARDANDO_CONFIRMACAO",
+        "timestamp": "2026-11-13T05:03:54.497Z",
+        "responsavel": "Sistema",
+        "observacao": "Aguardando comprovante/confirmação PIX"
+      }
+    ],
+    "troco_para": null,
+    "troco_valor": null,
+    "status": "RECEBIDO",
+    "status_historico": [
+      {
+        "status": "RECEBIDO",
+        "timestamp": "2026-11-13T05:03:54.497Z",
+        "descricao": "Pedido recebido pelo sistema da Sorveteria Lolla."
+      }
+    ],
+    "historico_entregadores": [],
+    "entregador_id": null,
+    "entregador_nome": null,
+    "created_at": "2026-11-13T05:03:54.497Z",
+    "updated_at": "2026-11-13T05:03:54.497Z"
+  },
+  {
+    "id": "ped_1794546201492_mkfp",
+    "numero": 1012,
+    "codigo_rastreio": "L-OBHGEEO6",
+    "cliente_id": null,
+    "cliente_nome": "Lucas Dinheiro",
+    "cliente_telefone": "47990001122",
+    "endereco": {
+      "rua": "Rua A",
+      "numero": "1",
+      "complemento": "",
+      "bairro": "Centro",
+      "referencia": "",
+      "cep": ""
+    },
+    "itens": [
+      {
+        "id": null,
+        "nome": "Açaí Tradicional - Copo 500ml",
+        "preco": 18,
+        "qtd": 2,
+        "subtotal": 36,
+        "opcoes": null,
+        "observacao": ""
+      }
+    ],
+    "subtotal": 36,
+    "taxa_entrega": 5,
+    "valor_repasse_entregador": 4,
+    "desconto": 0,
+    "total": 41,
+    "forma_pagamento": "dinheiro",
+    "status_pagamento": "PENDENTE",
+    "pagamento_historico": [
+      {
+        "status": "PENDENTE",
+        "timestamp": "2026-11-13T05:03:21.492Z",
+        "responsavel": "Sistema",
+        "observacao": "Pagamento na entrega"
+      }
+    ],
+    "troco_para": 50,
+    "troco_valor": 9,
+    "status": "RECEBIDO",
+    "status_historico": [
+      {
+        "status": "RECEBIDO",
+        "timestamp": "2026-11-13T05:03:21.492Z",
+        "descricao": "Pedido recebido pelo sistema da Sorveteria Lolla."
+      }
+    ],
+    "historico_entregadores": [],
+    "entregador_id": null,
+    "entregador_nome": null,
+    "created_at": "2026-11-13T05:03:21.492Z",
+    "updated_at": "2026-11-13T05:03:21.492Z"
+  },
+  {
+    "id": "ped_1794546201342_w3cj",
+    "numero": 1011,
+    "codigo_rastreio": "L-5OWQ6N2K",
+    "cliente_id": null,
+    "cliente_nome": "Mariana Silva",
+    "cliente_telefone": "47998877665",
+    "endereco": {
+      "rua": "Av. Brasil",
+      "numero": "500",
+      "complemento": "Apto 12",
+      "bairro": "Centro",
+      "referencia": "",
+      "cep": ""
+    },
+    "itens": [
+      {
+        "id": null,
+        "nome": "Açaí Tradicional - Copo 500ml",
+        "preco": 18,
+        "qtd": 2,
+        "subtotal": 36,
+        "opcoes": null,
+        "observacao": ""
+      }
+    ],
+    "subtotal": 36,
+    "taxa_entrega": 5,
+    "valor_repasse_entregador": 4,
+    "desconto": 0,
+    "total": 41,
+    "forma_pagamento": "pix",
+    "status_pagamento": "CONFIRMADO",
+    "pagamento_historico": [
+      {
+        "status": "AGUARDANDO_CONFIRMACAO",
+        "timestamp": "2026-11-13T05:03:21.342Z",
+        "responsavel": "Sistema",
+        "observacao": "Aguardando comprovante/confirmação PIX"
+      },
+      {
+        "status": "CONFIRMADO",
+        "timestamp": "2026-11-13T05:03:21.477Z",
+        "responsavel": "Dono",
+        "observacao": "Comprovante conferido via Extrato Bancário"
+      }
+    ],
+    "troco_para": null,
+    "troco_valor": null,
+    "status": "ENTREGUE",
+    "status_historico": [
+      {
+        "status": "RECEBIDO",
+        "timestamp": "2026-11-13T05:03:21.342Z",
+        "descricao": "Pedido recebido pelo sistema da Sorveteria Lolla."
+      },
+      {
+        "status": "EM_PREPARACAO",
+        "timestamp": "2026-11-13T05:03:21.386Z",
+        "descricao": "Status alterado para EM_PREPARACAO pelo Dono."
+      },
+      {
+        "status": "AGUARDANDO_ENTREGADOR",
+        "timestamp": "2026-11-13T05:03:21.397Z",
+        "descricao": "Chamada de entrega enviada para 6 entregador(es) aprovados (online e offline)."
+      },
+      {
+        "status": "ENTREGADOR_A_CAMINHO",
+        "timestamp": "2026-11-13T05:03:21.420Z",
+        "descricao": "Chamada aceita pelo entregador Carlos Motoboy 1. Indo retirar na loja."
+      },
+      {
+        "status": "AGUARDANDO_ENTREGADOR",
+        "timestamp": "2026-11-13T05:03:21.431Z",
+        "descricao": "O entregador Carlos Motoboy 1 cancelou o aceite (Pneu da moto furou na saída). Pedido retornado para a fila de entregas."
+      },
+      {
+        "status": "ENTREGADOR_A_CAMINHO",
+        "timestamp": "2026-11-13T05:03:21.446Z",
+        "descricao": "Chamada aceita pelo entregador Roberto Motoboy 2. Indo retirar na loja."
+      },
+      {
+        "status": "ENTREGADOR_A_CAMINHO",
+        "etapa_entregador": "CHEGOU_SORVETERIA",
+        "timestamp": "2026-11-13T05:03:21.451Z",
+        "descricao": "Entregador chegou à sorveteria e aguarda a embalagem."
+      },
+      {
+        "status": "SAIU_ENTREGA",
+        "etapa_entregador": "RETIRADO",
+        "timestamp": "2026-11-13T05:03:21.456Z",
+        "descricao": "Pedido retirado na sorveteria e a caminho do endereço de entrega!"
+      },
+      {
+        "status": "ENTREGUE",
+        "etapa_entregador": "ENTREGUE",
+        "timestamp": "2026-11-13T05:03:21.463Z",
+        "descricao": "Pedido entregue com sucesso ao cliente!"
+      }
+    ],
+    "historico_entregadores": [
+      {
+        "entregador_id": "mot_1794546201357_1bod",
+        "entregador_nome": "Carlos Motoboy 1",
+        "aceito_em": "2026-11-13T05:03:21.420Z",
+        "cancelado_em": "2026-11-13T05:03:21.431Z",
+        "motivo": "Pneu da moto furou na saída"
+      }
+    ],
+    "entregador_id": "mot_1794546201362_61hl",
+    "entregador_nome": "Roberto Motoboy 2",
+    "created_at": "2026-11-13T05:03:21.342Z",
+    "updated_at": "2026-11-13T05:03:21.477Z"
+  },
+  {
+    "id": "ped_1794546201321_rmpa",
+    "numero": 1010,
+    "codigo_rastreio": "L-D6O54IV6",
+    "cliente_id": null,
+    "cliente_nome": "Cliente Teste",
+    "cliente_telefone": "47999990001",
+    "endereco": {
+      "rua": "Rua das Flores",
+      "numero": "100",
+      "complemento": "",
+      "bairro": "Centro",
+      "referencia": "",
+      "cep": ""
+    },
+    "itens": [
+      {
+        "id": null,
+        "nome": "Açaí Tradicional - Copo 300ml",
+        "preco": 15,
+        "qtd": 1,
+        "subtotal": 15,
+        "opcoes": null,
+        "observacao": ""
+      }
+    ],
+    "subtotal": 15,
+    "taxa_entrega": 5,
+    "valor_repasse_entregador": 4,
+    "desconto": 0,
+    "total": 20,
+    "forma_pagamento": "pix",
+    "status_pagamento": "AGUARDANDO_CONFIRMACAO",
+    "pagamento_historico": [
+      {
+        "status": "AGUARDANDO_CONFIRMACAO",
+        "timestamp": "2026-11-13T05:03:21.321Z",
+        "responsavel": "Sistema",
+        "observacao": "Aguardando comprovante/confirmação PIX"
+      }
+    ],
+    "troco_para": null,
+    "troco_valor": null,
+    "status": "RECEBIDO",
+    "status_historico": [
+      {
+        "status": "RECEBIDO",
+        "timestamp": "2026-11-13T05:03:21.321Z",
+        "descricao": "Pedido recebido pelo sistema da Sorveteria Lolla."
+      }
+    ],
+    "historico_entregadores": [],
+    "entregador_id": null,
+    "entregador_nome": null,
+    "created_at": "2026-11-13T05:03:21.321Z",
+    "updated_at": "2026-11-13T05:03:21.321Z"
+  },
+  {
+    "id": "ped_1794546120262_0zv5",
+    "numero": 1009,
+    "codigo_rastreio": "L-7ON15JNL",
+    "cliente_id": null,
+    "cliente_nome": "Lucas Dinheiro",
+    "cliente_telefone": "47990001122",
+    "endereco": {
+      "rua": "Rua A",
+      "numero": "1",
+      "complemento": "",
+      "bairro": "Centro",
+      "referencia": "",
+      "cep": ""
+    },
+    "itens": [
+      {
+        "id": null,
+        "nome": "Açaí Tradicional - Copo 500ml",
+        "preco": 18,
+        "qtd": 2,
+        "subtotal": 36,
+        "opcoes": null,
+        "observacao": ""
+      }
+    ],
+    "subtotal": 36,
+    "taxa_entrega": 5,
+    "valor_repasse_entregador": 4,
+    "desconto": 0,
+    "total": 41,
+    "forma_pagamento": "dinheiro",
+    "status_pagamento": "PENDENTE",
+    "pagamento_historico": [
+      {
+        "status": "PENDENTE",
+        "timestamp": "2026-11-13T05:02:00.263Z",
+        "responsavel": "Sistema",
+        "observacao": "Pagamento na entrega"
+      }
+    ],
+    "troco_para": 50,
+    "troco_valor": 9,
+    "status": "RECEBIDO",
+    "status_historico": [
+      {
+        "status": "RECEBIDO",
+        "timestamp": "2026-11-13T05:02:00.263Z",
+        "descricao": "Pedido recebido pelo sistema da Sorveteria Lolla."
+      }
+    ],
+    "historico_entregadores": [],
+    "entregador_id": null,
+    "entregador_nome": null,
+    "created_at": "2026-11-13T05:02:00.263Z",
+    "updated_at": "2026-11-13T05:02:00.263Z"
+  },
+  {
+    "id": "ped_1794546120124_1xhy",
+    "numero": 1008,
+    "codigo_rastreio": "L-J43IVU2D",
+    "cliente_id": null,
+    "cliente_nome": "Mariana Silva",
+    "cliente_telefone": "47998877665",
+    "endereco": {
+      "rua": "Av. Brasil",
+      "numero": "500",
+      "complemento": "Apto 12",
+      "bairro": "Centro",
+      "referencia": "",
+      "cep": ""
+    },
+    "itens": [
+      {
+        "id": null,
+        "nome": "Açaí Tradicional - Copo 500ml",
+        "preco": 18,
+        "qtd": 2,
+        "subtotal": 36,
+        "opcoes": null,
+        "observacao": ""
+      }
+    ],
+    "subtotal": 36,
+    "taxa_entrega": 5,
+    "valor_repasse_entregador": 4,
+    "desconto": 0,
+    "total": 41,
+    "forma_pagamento": "pix",
+    "status_pagamento": "CONFIRMADO",
+    "pagamento_historico": [
+      {
+        "status": "AGUARDANDO_CONFIRMACAO",
+        "timestamp": "2026-11-13T05:02:00.124Z",
+        "responsavel": "Sistema",
+        "observacao": "Aguardando comprovante/confirmação PIX"
+      },
+      {
+        "status": "CONFIRMADO",
+        "timestamp": "2026-11-13T05:02:00.255Z",
+        "responsavel": "Dono",
+        "observacao": "Comprovante conferido via Extrato Bancário"
+      }
+    ],
+    "troco_para": null,
+    "troco_valor": null,
+    "status": "ENTREGUE",
+    "status_historico": [
+      {
+        "status": "RECEBIDO",
+        "timestamp": "2026-11-13T05:02:00.124Z",
+        "descricao": "Pedido recebido pelo sistema da Sorveteria Lolla."
+      },
+      {
+        "status": "EM_PREPARACAO",
+        "timestamp": "2026-11-13T05:02:00.181Z",
+        "descricao": "Status alterado para EM_PREPARACAO pelo Dono."
+      },
+      {
+        "status": "AGUARDANDO_ENTREGADOR",
+        "timestamp": "2026-11-13T05:02:00.185Z",
+        "descricao": "Chamada de entrega enviada para 4 entregador(es) aprovados (online e offline)."
+      },
+      {
+        "status": "ENTREGADOR_A_CAMINHO",
+        "timestamp": "2026-11-13T05:02:00.209Z",
+        "descricao": "Chamada aceita pelo entregador Carlos Motoboy 1. Indo retirar na loja."
+      },
+      {
+        "status": "AGUARDANDO_ENTREGADOR",
+        "timestamp": "2026-11-13T05:02:00.219Z",
+        "descricao": "O entregador Carlos Motoboy 1 cancelou o aceite (Pneu da moto furou na saída). Pedido retornado para a fila de entregas."
+      },
+      {
+        "status": "ENTREGADOR_A_CAMINHO",
+        "timestamp": "2026-11-13T05:02:00.233Z",
+        "descricao": "Chamada aceita pelo entregador Roberto Motoboy 2. Indo retirar na loja."
+      },
+      {
+        "status": "ENTREGADOR_A_CAMINHO",
+        "etapa_entregador": "CHEGOU_SORVETERIA",
+        "timestamp": "2026-11-13T05:02:00.238Z",
+        "descricao": "Entregador chegou à sorveteria e aguarda a embalagem."
+      },
+      {
+        "status": "SAIU_ENTREGA",
+        "etapa_entregador": "RETIRADO",
+        "timestamp": "2026-11-13T05:02:00.242Z",
+        "descricao": "Pedido retirado na sorveteria e a caminho do endereço de entrega!"
+      },
+      {
+        "status": "ENTREGUE",
+        "etapa_entregador": "ENTREGUE",
+        "timestamp": "2026-11-13T05:02:00.246Z",
+        "descricao": "Pedido entregue com sucesso ao cliente!"
+      }
+    ],
+    "historico_entregadores": [
+      {
+        "entregador_id": "mot_1794546120151_ptb3",
+        "entregador_nome": "Carlos Motoboy 1",
+        "aceito_em": "2026-11-13T05:02:00.209Z",
+        "cancelado_em": "2026-11-13T05:02:00.219Z",
+        "motivo": "Pneu da moto furou na saída"
+      }
+    ],
+    "entregador_id": "mot_1794546120155_eeqd",
+    "entregador_nome": "Roberto Motoboy 2",
+    "created_at": "2026-11-13T05:02:00.124Z",
+    "updated_at": "2026-11-13T05:02:00.255Z"
+  },
+  {
+    "id": "ped_1794546120114_1tja",
+    "numero": 1007,
+    "codigo_rastreio": "L-CORI62SR",
+    "cliente_id": null,
+    "cliente_nome": "Cliente Teste",
+    "cliente_telefone": "47999990001",
+    "endereco": {
+      "rua": "Rua das Flores",
+      "numero": "100",
+      "complemento": "",
+      "bairro": "Centro",
+      "referencia": "",
+      "cep": ""
+    },
+    "itens": [
+      {
+        "id": null,
+        "nome": "Açaí Tradicional - Copo 300ml",
+        "preco": 15,
+        "qtd": 1,
+        "subtotal": 15,
+        "opcoes": null,
+        "observacao": ""
+      }
+    ],
+    "subtotal": 15,
+    "taxa_entrega": 5,
+    "valor_repasse_entregador": 4,
+    "desconto": 0,
+    "total": 20,
+    "forma_pagamento": "pix",
+    "status_pagamento": "AGUARDANDO_CONFIRMACAO",
+    "pagamento_historico": [
+      {
+        "status": "AGUARDANDO_CONFIRMACAO",
+        "timestamp": "2026-11-13T05:02:00.114Z",
+        "responsavel": "Sistema",
+        "observacao": "Aguardando comprovante/confirmação PIX"
+      }
+    ],
+    "troco_para": null,
+    "troco_valor": null,
+    "status": "RECEBIDO",
+    "status_historico": [
+      {
+        "status": "RECEBIDO",
+        "timestamp": "2026-11-13T05:02:00.114Z",
+        "descricao": "Pedido recebido pelo sistema da Sorveteria Lolla."
+      }
+    ],
+    "historico_entregadores": [],
+    "entregador_id": null,
+    "entregador_nome": null,
+    "created_at": "2026-11-13T05:02:00.114Z",
+    "updated_at": "2026-11-13T05:02:00.114Z"
+  },
+  {
+    "id": "ped_1794546008046_e2c2",
+    "numero": 1006,
+    "codigo_rastreio": "L-7F3VJJYE",
+    "cliente_id": null,
+    "cliente_nome": "Mariana Silva",
+    "cliente_telefone": "47998877665",
+    "endereco": {
+      "rua": "Av. Brasil",
+      "numero": "500",
+      "complemento": "Apto 12",
+      "bairro": "Centro",
+      "referencia": "",
+      "cep": ""
+    },
+    "itens": [
+      {
+        "id": null,
+        "nome": "Açaí Tradicional - Copo 500ml",
+        "preco": 18,
+        "qtd": 2,
+        "subtotal": 36,
+        "opcoes": null,
+        "observacao": ""
+      }
+    ],
+    "subtotal": 36,
+    "taxa_entrega": 5,
+    "valor_repasse_entregador": 4,
+    "desconto": 0,
+    "total": 41,
+    "forma_pagamento": "pix",
+    "status_pagamento": "AGUARDANDO_CONFIRMACAO",
+    "pagamento_historico": [
+      {
+        "status": "AGUARDANDO_CONFIRMACAO",
+        "timestamp": "2026-11-13T05:00:08.046Z",
+        "responsavel": "Sistema",
+        "observacao": "Aguardando comprovante/confirmação PIX"
+      }
+    ],
+    "troco_para": null,
+    "troco_valor": null,
+    "status": "RECEBIDO",
+    "status_historico": [
+      {
+        "status": "RECEBIDO",
+        "timestamp": "2026-11-13T05:00:08.046Z",
+        "descricao": "Pedido recebido pelo sistema da Sorveteria Lolla."
+      }
+    ],
+    "historico_entregadores": [],
+    "entregador_id": null,
+    "entregador_nome": null,
+    "created_at": "2026-11-13T05:00:08.046Z",
+    "updated_at": "2026-11-13T05:00:08.046Z"
+  },
+  {
+    "id": "ped_1794546008033_77ic",
+    "numero": 1005,
+    "codigo_rastreio": "L-292H4TGK",
+    "cliente_id": null,
+    "cliente_nome": "Cliente Teste",
+    "cliente_telefone": "47999990001",
+    "endereco": {
+      "rua": "Rua das Flores",
+      "numero": "100",
+      "complemento": "",
+      "bairro": "Centro",
+      "referencia": "",
+      "cep": ""
+    },
+    "itens": [
+      {
+        "id": null,
+        "nome": "Açaí Tradicional - Copo 300ml",
+        "preco": 15,
+        "qtd": 1,
+        "subtotal": 15,
+        "opcoes": null,
+        "observacao": ""
+      }
+    ],
+    "subtotal": 15,
+    "taxa_entrega": 5,
+    "valor_repasse_entregador": 4,
+    "desconto": 0,
+    "total": 20,
+    "forma_pagamento": "pix",
+    "status_pagamento": "AGUARDANDO_CONFIRMACAO",
+    "pagamento_historico": [
+      {
+        "status": "AGUARDANDO_CONFIRMACAO",
+        "timestamp": "2026-11-13T05:00:08.033Z",
+        "responsavel": "Sistema",
+        "observacao": "Aguardando comprovante/confirmação PIX"
+      }
+    ],
+    "troco_para": null,
+    "troco_valor": null,
+    "status": "RECEBIDO",
+    "status_historico": [
+      {
+        "status": "RECEBIDO",
+        "timestamp": "2026-11-13T05:00:08.033Z",
+        "descricao": "Pedido recebido pelo sistema da Sorveteria Lolla."
+      }
+    ],
+    "historico_entregadores": [],
+    "entregador_id": null,
+    "entregador_nome": null,
+    "created_at": "2026-11-13T05:00:08.033Z",
+    "updated_at": "2026-11-13T05:00:08.033Z"
+  },
+  {
+    "id": "ped_1794545904992_ginm",
+    "numero": 1004,
+    "codigo_rastreio": "L-SC1QD2N3",
+    "cliente_id": null,
+    "cliente_nome": "Mariana Silva",
+    "cliente_telefone": "47998877665",
+    "endereco": {
+      "rua": "Av. Brasil",
+      "numero": "500",
+      "complemento": "Apto 12",
+      "bairro": "Centro",
+      "referencia": "",
+      "cep": ""
+    },
+    "itens": [
+      {
+        "id": null,
+        "nome": "Açaí Tradicional - Copo 500ml",
+        "preco": 18,
+        "qtd": 2,
+        "subtotal": 36,
+        "opcoes": null,
+        "observacao": ""
+      }
+    ],
+    "subtotal": 36,
+    "taxa_entrega": 5,
+    "valor_repasse_entregador": 4,
+    "desconto": 0,
+    "total": 41,
+    "forma_pagamento": "pix",
+    "status_pagamento": "AGUARDANDO_CONFIRMACAO",
+    "pagamento_historico": [
+      {
+        "status": "AGUARDANDO_CONFIRMACAO",
+        "timestamp": "2026-11-13T04:58:24.992Z",
+        "responsavel": "Sistema",
+        "observacao": "Aguardando comprovante/confirmação PIX"
+      }
+    ],
+    "troco_para": null,
+    "troco_valor": null,
+    "status": "RECEBIDO",
+    "status_historico": [
+      {
+        "status": "RECEBIDO",
+        "timestamp": "2026-11-13T04:58:24.992Z",
+        "descricao": "Pedido recebido pelo sistema da Sorveteria Lolla."
+      }
+    ],
+    "historico_entregadores": [],
+    "entregador_id": null,
+    "entregador_nome": null,
+    "created_at": "2026-11-13T04:58:24.992Z",
+    "updated_at": "2026-11-13T04:58:24.992Z"
+  },
+  {
+    "id": "ped_1794545904981_o21i",
+    "numero": 1003,
+    "codigo_rastreio": "L-WS5OWBNQ",
+    "cliente_id": null,
+    "cliente_nome": "Cliente Teste",
+    "cliente_telefone": "47999990001",
+    "endereco": {
+      "rua": "Rua das Flores",
+      "numero": "100",
+      "complemento": "",
+      "bairro": "Centro",
+      "referencia": "",
+      "cep": ""
+    },
+    "itens": [
+      {
+        "id": null,
+        "nome": "Açaí Tradicional - Copo 300ml",
+        "preco": 15,
+        "qtd": 1,
+        "subtotal": 15,
+        "opcoes": null,
+        "observacao": ""
+      }
+    ],
+    "subtotal": 15,
+    "taxa_entrega": 5,
+    "valor_repasse_entregador": 4,
+    "desconto": 0,
+    "total": 20,
+    "forma_pagamento": "pix",
+    "status_pagamento": "AGUARDANDO_CONFIRMACAO",
+    "pagamento_historico": [
+      {
+        "status": "AGUARDANDO_CONFIRMACAO",
+        "timestamp": "2026-11-13T04:58:24.981Z",
+        "responsavel": "Sistema",
+        "observacao": "Aguardando comprovante/confirmação PIX"
+      }
+    ],
+    "troco_para": null,
+    "troco_valor": null,
+    "status": "RECEBIDO",
+    "status_historico": [
+      {
+        "status": "RECEBIDO",
+        "timestamp": "2026-11-13T04:58:24.981Z",
+        "descricao": "Pedido recebido pelo sistema da Sorveteria Lolla."
+      }
+    ],
+    "historico_entregadores": [],
+    "entregador_id": null,
+    "entregador_nome": null,
+    "created_at": "2026-11-13T04:58:24.981Z",
+    "updated_at": "2026-11-13T04:58:24.981Z"
+  },
+  {
+    "id": "ped_1794543751935_bidt",
+    "numero": 1002,
+    "codigo_rastreio": "L-H53ZCWV1",
+    "cliente_id": "cli_1794543751928_nawk",
+    "cliente_nome": "Cliente Cadastrado Teste",
+    "cliente_telefone": "44998885734",
+    "endereco": {
+      "rua": "Av. Mandacaru",
+      "numero": "500",
+      "complemento": "",
+      "bairro": "Zona 07",
+      "referencia": "",
+      "cep": ""
+    },
+    "itens": [
+      {
+        "id": "item_2",
+        "nome": "Açaí Tradicional 500ml",
+        "preco": 18,
+        "qtd": 2,
+        "subtotal": 36,
+        "opcoes": null,
+        "observacao": ""
+      }
+    ],
+    "subtotal": 36,
+    "taxa_entrega": 7,
+    "valor_repasse_entregador": 5.5,
+    "desconto": 0,
+    "total": 43,
+    "forma_pagamento": "dinheiro",
+    "troco_para": 50,
+    "troco_valor": 7,
+    "status": "RECEBIDO",
+    "status_historico": [
+      {
+        "status": "RECEBIDO",
+        "timestamp": "2026-11-13T04:22:31.935Z",
+        "descricao": "Pedido recebido pelo sistema da Sorveteria Lolla."
+      }
+    ],
+    "entregador_id": null,
+    "entregador_nome": null,
+    "created_at": "2026-11-13T04:22:31.935Z",
+    "updated_at": "2026-11-13T04:22:31.935Z"
+  },
+  {
+    "id": "ped_1794543751882_m7f8",
+    "numero": 1001,
+    "codigo_rastreio": "L-00YKCWJZ",
+    "cliente_id": null,
+    "cliente_nome": "Visitante Teste 1",
+    "cliente_telefone": "44991112222",
+    "endereco": {
+      "rua": "Rua das Flores",
+      "numero": "123",
+      "complemento": "",
+      "bairro": "Centro",
+      "referencia": "",
+      "cep": "87000-000"
+    },
+    "itens": [
+      {
+        "id": "item_1",
+        "nome": "Pote Clássico 2L - Doce de Valsa",
+        "preco": 39.9,
+        "qtd": 1,
+        "subtotal": 39.9,
+        "opcoes": null,
+        "observacao": ""
+      }
+    ],
+    "subtotal": 39.9,
+    "taxa_entrega": 5,
+    "valor_repasse_entregador": 4,
+    "desconto": 0,
+    "total": 44.9,
+    "forma_pagamento": "pix",
+    "troco_para": null,
+    "troco_valor": null,
+    "status": "ENTREGUE",
+    "status_historico": [
+      {
+        "status": "RECEBIDO",
+        "timestamp": "2026-11-13T04:22:31.882Z",
+        "descricao": "Pedido recebido pelo sistema da Sorveteria Lolla."
+      },
+      {
+        "status": "ACEITO",
+        "timestamp": "2026-11-13T04:22:32.001Z",
+        "descricao": "Status alterado para ACEITO pelo Dono."
+      },
+      {
+        "status": "EM_PREPARACAO",
+        "timestamp": "2026-11-13T04:22:32.009Z",
+        "descricao": "Status alterado para EM_PREPARACAO pelo Dono."
+      },
+      {
+        "status": "AGUARDANDO_ENTREGADOR",
+        "timestamp": "2026-11-13T04:22:32.016Z",
+        "descricao": "Chamada de entrega enviada aos motoboys online."
+      },
+      {
+        "status": "ENTREGADOR_A_CAMINHO",
+        "timestamp": "2026-11-13T04:22:32.031Z",
+        "descricao": "Chamada aceita pelo entregador Motoboy Alfa. Indo retirar na loja."
+      },
+      {
+        "status": "ENTREGADOR_A_CAMINHO",
+        "etapa_entregador": "CHEGOU_SORVETERIA",
+        "timestamp": "2026-11-13T04:22:32.045Z",
+        "descricao": "Entregador chegou à sorveteria e aguarda a embalagem."
+      },
+      {
+        "status": "SAIU_ENTREGA",
+        "etapa_entregador": "RETIRADO",
+        "timestamp": "2026-11-13T04:22:32.050Z",
+        "descricao": "Pedido retirado na sorveteria e a caminho do endereço de entrega!"
+      },
+      {
+        "status": "ENTREGUE",
+        "etapa_entregador": "ENTREGUE",
+        "timestamp": "2026-11-13T04:22:32.058Z",
+        "descricao": "Pedido entregue com sucesso ao cliente!"
+      }
+    ],
+    "entregador_id": "mot_1794543751945_sb1f",
+    "entregador_nome": "Motoboy Alfa",
+    "created_at": "2026-11-13T04:22:31.882Z",
+    "updated_at": "2026-11-13T04:22:32.058Z"
+  }
+]

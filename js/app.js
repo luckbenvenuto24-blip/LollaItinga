@@ -627,7 +627,7 @@ function card(it, i, itemIndex) {
   return `<article class="card ${oculto ? 'card-oculto' : ''}" data-idx="${itemIndex}" style="animation-delay:${Math.min(i, 11) * 28}ms">
     <div class="foto" style="${getImageTransformStyle(it)}">
       ${imgHtml}
-      ${off ? `<span class="off">-${off}%</span>` : ''}
+      ${it.disponibilidade === 'esgotado' || it.esgotado ? '<span class="off" style="background:#CF1322">🔴 Esgotado</span>' : (it.disponibilidade === 'temporariamente_indisponivel' ? '<span class="off" style="background:#D48806">🟡 Indisponível</span>' : (off ? `<span class="off">-${off}%</span>` : ''))}
       ${isDestaque ? '<span class="badge-destaque-produto">⭐ Destaque</span>' : ''}
       <div class="card-admin-actions">
         <button type="button" class="btn-card-admin destaque-toggle ${isDestaque ? 'ativo' : ''}" title="${isDestaque ? 'Remover dos destaques da semana' : 'Colocar nos destaques da semana'}" onclick="alternarDestaqueProduto(${itemIndex})">${isDestaque ? '⭐' : '☆'}</button>
@@ -656,7 +656,15 @@ function card(it, i, itemIndex) {
           ${off ? `<span class="preco-antigo">R$ ${brl(po)}</span>` : ''}
         </div>
         <div class="card-acoes-dupla">
-          ${isAcai ? `
+          ${(it.disponibilidade === 'esgotado' || it.esgotado) ? `
+            <button type="button" class="btn-pedir-zap disabled" style="background:#8c8c8c;cursor:not-allowed;width:100%" disabled>
+              🚫 Esgotado
+            </button>
+          ` : (it.disponibilidade === 'temporariamente_indisponivel') ? `
+            <button type="button" class="btn-pedir-zap disabled" style="background:#8c8c8c;cursor:not-allowed;width:100%" disabled>
+              ⏳ Temporariamente Indisponível
+            </button>
+          ` : isAcai ? `
             <button type="button" class="btn-pedir-zap" onclick="abrirModalMontarAcai('${it.baseId || 'tradicional'}', '${it.tamanho || '500ml'}', ${itemIndex})" style="background:#4A0E4E;box-shadow:0 4px 12px rgba(74,14,78,.35)">
               🍧 Personalizar e Pedir
             </button>
@@ -725,7 +733,15 @@ function renderDestaquesMomento() {
             ${off ? `<span class="preco-antigo">R$ ${brl(po)}</span>` : ''}
           </div>
           <div class="destaque-momento-botoes">
-            ${isAcai ? `
+            ${(it.disponibilidade === 'esgotado' || it.esgotado) ? `
+              <button type="button" class="btn-pedir-zap disabled" style="background:#8c8c8c;cursor:not-allowed;width:100%" disabled>
+                🚫 Esgotado
+              </button>
+            ` : (it.disponibilidade === 'temporariamente_indisponivel') ? `
+              <button type="button" class="btn-pedir-zap disabled" style="background:#8c8c8c;cursor:not-allowed;width:100%" disabled>
+                ⏳ Indisponível
+              </button>
+            ` : isAcai ? `
               <button type="button" class="btn-pedir-zap" onclick="abrirModalMontarAcai('${it.baseId || 'tradicional'}', '${it.tamanho || '500ml'}', ${itemIndex})" style="background:#4A0E4E">
                 🍧 Personalizar e Pedir
               </button>
@@ -1186,6 +1202,15 @@ window.pedirItemWhatsApp = function(itemIndex, ev) {
 function adicionarAoPedido(itemIndex, ev) {
   const it = D && D.itens && D.itens[itemIndex];
   if (!it) return;
+
+  if (it.disponibilidade === 'esgotado' || it.esgotado) {
+    toast(`❌ "${it.n}" está esgotado no momento.`);
+    return;
+  }
+  if (it.disponibilidade === 'temporariamente_indisponivel') {
+    toast(`⏳ "${it.n}" está temporariamente indisponível.`);
+    return;
+  }
 
   const { title, size, desc } = formatProduct(it);
   const preco = parseFloat(it.p) || 0;
@@ -1760,11 +1785,13 @@ async function submeterNovaSenha(e) {
 
 /* ==========================================================
  * CONFIGURAÇÃO NUVEM OFICIAL (SUPABASE & BACKUP)
+ * Projeto Oficial: lolla (bpxqanowjvlzifxkyypj)
  * ========================================================== */
 
 const SUPABASE_CONFIG = {
-  url: 'https://fflaatbvwwtvckuselkr.supabase.co',
-  anonKey: 'sb_publishable_qctRhqScOKjKgjZWtnlWbA_nA1dsm4Z',
+  url: 'https://bpxqanowjvlzifxkyypj.supabase.co',
+  anonKey: 'sb_publishable_sDqZJ29prJ2mjQ6MLdrpPA_z8lVbmPQ',
+  legacyAnon: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJweHFhbm93anZsemlmeGt5eXBqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxNjcxNDMsImV4cCI6MjA5NTc0MzE0M30.9wEYk9SZGXHb4fWglNuHyyeKlV3dsd51d40HKFBuHrI',
   table: 'lolla_cardapio_online',
   bucket: 'produtos'
 };
@@ -2291,6 +2318,9 @@ window.abrirModalEditar = function (index) {
   $('#prod-desc').value = it.d || '';
   $('#prod-preco').value = it.p !== undefined && it.p !== null ? brl(it.p) : '';
   $('#prod-preco-antigo').value = (it.po && parseFloat(it.po) > parseFloat(it.p)) ? brl(it.po) : '';
+  if ($('#prod-disponibilidade')) {
+    $('#prod-disponibilidade').value = it.disponibilidade || (it.esgotado ? 'esgotado' : (it.oculto ? 'temporariamente_indisponivel' : 'disponivel'));
+  }
   $('#prod-foto-url').value = it.img || '';
   $('#prod-foto-arquivo').value = '';
 
@@ -2442,6 +2472,7 @@ async function submitProduto(e) {
   const fotoPosY = Number($('#prod-img-pos-y') ? $('#prod-img-pos-y').value : 0) || 0;
   const fotoFitEl = document.querySelector('input[name="prod-img-fit"]:checked');
   const fotoFit = fotoFitEl ? fotoFitEl.value : 'cover';
+  const disp = $('#prod-disponibilidade') ? $('#prod-disponibilidade').value : 'disponivel';
 
   const itemObj = {
     n: nome,
@@ -2450,6 +2481,9 @@ async function submitProduto(e) {
     g: grupoSel,
     p: preco,
     po: precoAntigo,
+    disponibilidade: disp,
+    esgotado: (disp === 'esgotado'),
+    oculto: (disp === 'temporariamente_indisponivel'),
     imgRot: fotoRot,
     imgScale: fotoScale,
     imgPosX: fotoPosX,
@@ -5984,6 +6018,36 @@ window.atualizarEtapaMotoboy = async function(etapa) {
     }
   } catch (e) {
     alert('Erro de conexão ao atualizar etapa.');
+  }
+};
+
+window.cancelarEntregaMotoboy = async function() {
+  const box = $('#box-entrega-ativa-motoboy');
+  if (!box || !box.dataset.pedidoId) return;
+  const pedidoId = box.dataset.pedidoId;
+  const motivo = prompt('Por qual motivo você precisa cancelar esta entrega? (Ex: Pneu furado, imprevisto...)\nA entrega será devolvida à fila para outro motoboy assumir.');
+  if (motivo === null) return;
+
+  try {
+    const res = await fetch(`/api/entregador/pedidos/${pedidoId}/cancelar`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${motoboyToken}`
+      },
+      body: JSON.stringify({ motivo: motivo || 'Cancelado pelo entregador' })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      alert(`⚠️ ${data.error || 'Erro ao cancelar entrega'}`);
+      return;
+    }
+    box.style.display = 'none';
+    toast('⚠️ Entrega devolvida para a fila com sucesso.');
+    carregarChamadasMotoboy();
+    carregarPerfilMotoboy();
+  } catch (e) {
+    alert('Erro de conexão ao cancelar entrega.');
   }
 };
 
