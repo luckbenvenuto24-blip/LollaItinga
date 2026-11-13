@@ -1101,27 +1101,11 @@
         </div>
       </button>
 
-      <button type="button" class="btn-card-seletor" onclick="fecharSeletorAcesso(); abrirPainelDono()" style="display:flex;align-items:center;gap:14px;padding:14px;border:1.5px solid #FFD591;border-radius:14px;background:#FFFBF0;cursor:pointer;text-align:left;transition:all .18s">
-        <span style="font-size:28px">📊</span>
-        <div>
-          <strong style="display:block;font-size:15px;color:#D46B08">Painel do Dono</strong>
-          <small style="color:var(--tinta-fraca)">Dashboard, comandas, despacho de entregas e taxas</small>
-        </div>
-      </button>
-
       <button type="button" class="btn-card-seletor" onclick="fecharSeletorAcesso(); abrirPainelEntregador()" style="display:flex;align-items:center;gap:14px;padding:14px;border:1.5px solid #B7EB8F;border-radius:14px;background:#F6FFED;cursor:pointer;text-align:left;transition:all .18s">
         <span style="font-size:28px">🛵</span>
         <div>
           <strong style="display:block;font-size:15px;color:#389E0D">Painel do Entregador</strong>
           <small style="color:var(--tinta-fraca)">Área exclusiva para motoboys receberem entregas</small>
-        </div>
-      </button>
-
-      <button type="button" class="btn-card-seletor" onclick="fecharSeletorAcesso(); abrirModalLogin()" style="display:flex;align-items:center;gap:14px;padding:14px;border:1.5px solid var(--borda);border-radius:14px;background:#FFF0EB;cursor:pointer;text-align:left;transition:all .18s">
-        <span style="font-size:28px">🛠️</span>
-        <div>
-          <strong style="display:block;font-size:15px;color:var(--magenta)">Painel do Administrador</strong>
-          <small style="color:var(--tinta-fraca)">Gerenciar produtos, fotos, categorias e vitrine</small>
         </div>
       </button>
     </div>
@@ -1237,8 +1221,8 @@
     <form id="form-cliente-login" onsubmit="submitLoginCliente(event)">
       <div class="modal-corpo">
         <div class="campo">
-          <label for="cli-login-tel">Telefone / WhatsApp</label>
-          <input type="tel" id="cli-login-tel" required placeholder="(44) 99999-9999">
+          <label for="cli-login-tel">E-mail ou Telefone / WhatsApp</label>
+          <input type="text" id="cli-login-tel" required placeholder="ex: seu@email.com ou (44) 99999-9999" autocomplete="username">
         </div>
         <div class="campo">
           <label for="cli-login-senha">Senha</label>
@@ -1629,6 +1613,7 @@
     <button type="button" class="painel-aba-btn" onclick="alternarAbaDono('bairros')">📍 Bairros e Taxas</button>
     <button type="button" class="painel-aba-btn" onclick="alternarAbaDono('horarios')">⏰ Horários da Loja</button>
     <button type="button" class="painel-aba-btn" onclick="alternarAbaDono('pagamentos')">💳 Pagamentos e PIX</button>
+    <button type="button" class="painel-aba-btn" onclick="alternarAbaDono('acesso')">🔐 Acesso do Dono</button>
   </nav>
 
   <!-- Notificação Flutuante de Novo Pedido -->
@@ -1844,6 +1829,37 @@
           <small style="color:var(--tinta-fraca);display:block">O cartão fica desativado por padrão até você habilitar esta opção.</small>
 
           <button type="submit" class="btn-admin" style="margin-top:10px">💾 Salvar Configurações de Pagamento</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- ABA 8: ACESSO DO DONO (CONFIGURAÇÃO DE E-MAIL E SENHA) -->
+    <section id="aba-dono-acesso" style="display:none">
+      <div style="margin-bottom:16px">
+        <h2 style="font-size:22px;color:var(--magenta)">🔐 Acesso Secreto do Dono</h2>
+        <small style="color:var(--tinta-fraca)">Configure o e-mail e a senha que abrem este painel ao fazer login disfarçado como cliente</small>
+      </div>
+
+      <form id="form-acesso-dono" onsubmit="salvarConfigAcessoDono(event)">
+        <div style="background:#fff;border:1.5px solid var(--borda);border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:14px;max-width:600px">
+          <div style="padding:12px;background:#FFF7E6;border:1px solid #FFD591;border-radius:10px;font-size:13px;line-height:1.5;color:#873800">
+            <strong>💡 Como funciona o acesso secreto:</strong><br>
+            Nenhum botão de "Painel do Dono" fica visível no site. Quando você clica em <strong>"Área do Cliente"</strong> e digita este e-mail e senha, o sistema detecta automaticamente que você é o Dono e abre este painel.
+          </div>
+
+          <div class="campo">
+            <label for="dono-cfg-email">E-mail de Acesso do Dono</label>
+            <input type="email" id="dono-cfg-email" required placeholder="dono@sorveterialolla.com.br" style="padding:10px;border:1.5px solid var(--borda);border-radius:10px">
+            <small style="color:var(--tinta-fraca)">Digite o e-mail que você quer usar para acessar este painel.</small>
+          </div>
+
+          <div class="campo">
+            <label for="dono-cfg-senha">Nova Senha do Dono (Opcional)</label>
+            <input type="password" id="dono-cfg-senha" placeholder="Deixe em branco para manter a senha atual" style="padding:10px;border:1.5px solid var(--borda);border-radius:10px">
+            <small style="color:var(--tinta-fraca)">Mínimo 4 caracteres. Se não quiser alterar a senha, deixe este campo vazio.</small>
+          </div>
+
+          <button type="submit" class="btn-admin" style="margin-top:10px">💾 Salvar Credenciais do Dono</button>
         </div>
       </form>
     </section>

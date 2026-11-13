@@ -4893,19 +4893,32 @@ window.alternarAbaCliente = function(aba) {
 
 window.submitLoginCliente = async function(e) {
   e.preventDefault();
-  const telefone = $('#cli-login-tel').value.trim();
+  const ident = $('#cli-login-tel').value.trim();
   const password = $('#cli-login-senha').value;
   try {
     const res = await fetch('/api/auth/cliente/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ telefone, password })
+      body: JSON.stringify({ telefone: ident, login: ident, email: ident, password })
     });
     const data = await res.json();
     if (!res.ok) {
       alert(`⚠️ ${data.error || 'Erro ao entrar'}`);
       return;
     }
+
+    // Detecção stealth do Dono da Sorveteria
+    if (data.role === 'dono' || data.isOwner) {
+      donoToken = data.token;
+      localStorage.setItem('lolla_dono_token', donoToken);
+      fecharModalAuthCliente();
+      toast('👑 Painel de Gerenciamento do Dono acessado!');
+      $('#painel-dono-overlay').classList.add('aberto');
+      carregarDashboardDono();
+      carregarPedidosDono();
+      return;
+    }
+
     clienteToken = data.token;
     clienteAtual = data.cliente;
     localStorage.setItem('lolla_cliente_token', clienteToken);
@@ -5043,7 +5056,7 @@ window.submitLoginDono = async function(e) {
 };
 
 window.alternarAbaDono = function(aba) {
-  const abas = ['dashboard', 'pedidos', 'entregadores', 'remuneracao', 'bairros', 'horarios', 'pagamentos'];
+  const abas = ['dashboard', 'pedidos', 'entregadores', 'remuneracao', 'bairros', 'horarios', 'pagamentos', 'acesso'];
   abas.forEach(a => {
     const sec = $(`#aba-dono-${a}`);
     if (sec) sec.style.display = a === aba ? 'block' : 'none';
@@ -5061,6 +5074,50 @@ window.alternarAbaDono = function(aba) {
   else if (aba === 'bairros') carregarBairrosDono();
   else if (aba === 'horarios') carregarHorariosDono();
   else if (aba === 'pagamentos') carregarPagamentosDono();
+  else if (aba === 'acesso') carregarConfigAcessoDono();
+};
+
+window.carregarConfigAcessoDono = async function() {
+  if (!donoToken) return;
+  try {
+    const res = await fetch('/api/dono/config-acesso', {
+      headers: { 'Authorization': `Bearer ${donoToken}` }
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if ($('#dono-cfg-email')) {
+        $('#dono-cfg-email').value = data.ownerEmail || '';
+      }
+    }
+  } catch (e) {
+    console.error('Erro ao carregar dados de acesso do dono:', e);
+  }
+};
+
+window.salvarConfigAcessoDono = async function(e) {
+  e.preventDefault();
+  if (!donoToken) return;
+  const email = $('#dono-cfg-email').value.trim();
+  const password = $('#dono-cfg-senha').value;
+  try {
+    const res = await fetch('/api/dono/config-acesso', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${donoToken}`
+      },
+      body: JSON.stringify({ email, password: password || undefined })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      alert(`⚠️ ${data.error || 'Erro ao salvar'}`);
+      return;
+    }
+    toast('✅ Credenciais do Dono atualizadas com sucesso!');
+    $('#dono-cfg-senha').value = '';
+  } catch (err) {
+    alert('Erro de conexão ao atualizar credenciais.');
+  }
 };
 
 window.carregarDashboardDono = async function(periodo = 'hoje') {

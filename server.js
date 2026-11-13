@@ -101,11 +101,20 @@ function getAuthData() {
   const initial = {
     passwordHash: defaultHash,
     ownerPasswordHash: defaultHash,
+    ownerEmail: 'dono@sorveterialolla.com.br',
     defaultChanged: false
   };
   const data = readJson(AUTH_FILE, initial);
+  let changed = false;
   if (!data.ownerPasswordHash) {
     data.ownerPasswordHash = data.passwordHash || defaultHash;
+    changed = true;
+  }
+  if (!data.ownerEmail) {
+    data.ownerEmail = 'dono@sorveterialolla.com.br';
+    changed = true;
+  }
+  if (changed) {
     writeJson(AUTH_FILE, data);
   }
   return data;
@@ -456,17 +465,55 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // Login de Cliente
+  // Login de Cliente (com detecção stealth de acesso do Dono da Sorveteria)
   if (urlPath === '/api/auth/cliente/login' && req.method === 'POST') {
     try {
       const raw = await readBody(req);
-      const { telefone, password } = JSON.parse(raw);
-      const telClean = (telefone || '').replace(/\D/g, '');
+      const { telefone, login, email, password } = JSON.parse(raw);
+      const rawIdent = String(login || email || telefone || '').trim();
+      const auth = getAuthData();
+      const ownerEmailConfig = (auth.ownerEmail || '').trim().toLowerCase();
+
+      // Checa se o e-mail ou identificador digitado é do Dono
+      const isOwnerEmail = ownerEmailConfig && (rawIdent.toLowerCase() === ownerEmailConfig);
+      const isOwnerAlias = rawIdent.toLowerCase() === 'dono' || rawIdent.toLowerCase() === 'admin';
+
+      if (isOwnerEmail || isOwnerAlias) {
+        const plainHash = crypto.createHash('sha256').update(password || '').digest('hex');
+        const saltedHash = hashPassword(password || '');
+        const passMatch = (plainHash === auth.ownerPasswordHash || plainHash === auth.passwordHash || saltedHash === auth.ownerPasswordHash);
+
+        if (passMatch) {
+          const token = createToken({
+            userId: 'dono_principal',
+            role: 'dono',
+            exp: Date.now() + 30 * 24 * 3600 * 1000
+          });
+          sendJson(res, 200, {
+            success: true,
+            role: 'dono',
+            isOwner: true,
+            token,
+            redirect: '/dono',
+            message: 'Acesso autorizado ao Painel do Dono'
+          });
+          return;
+        } else {
+          sendJson(res, 401, { error: 'E-mail ou senha incorretos' });
+          return;
+        }
+      }
+
+      // Fluxo normal do cliente: busca por telefone (limpando não dígitos) ou por e-mail
+      const telClean = rawIdent.replace(/\D/g, '');
       const customers = readJson(CUSTOMERS_FILE, []);
-      const customer = customers.find(c => c.telefone === telClean);
+      const customer = customers.find(c => 
+        (telClean && telClean.length >= 8 && c.telefone === telClean) ||
+        (c.email && c.email.toLowerCase() === rawIdent.toLowerCase())
+      );
 
       if (!customer || customer.passwordHash !== hashPassword(password)) {
-        sendJson(res, 401, { error: 'Telefone ou senha incorretos' });
+        sendJson(res, 401, { error: 'Telefone/E-mail ou senha incorretos' });
         return;
       }
 
@@ -480,6 +527,7 @@ const server = http.createServer(async (req, res) => {
 
       sendJson(res, 200, {
         success: true,
+        role: 'cliente',
         token,
         cliente: { id: customer.id, nome: customer.nome, telefone: customer.telefone, enderecos: customer.enderecos || [] }
       });
@@ -2096,6 +2144,51 @@ const server = http.createServer(async (req, res) => {
       sendJson(res, 200, { success: true, pedidoMinimo: settings.pedido_minimo });
     } catch (err) {
       sendJson(res, 400, { error: 'Dados inválidos' });
+    }
+    return;
+  }
+
+  // Configuração de Acesso Secreto do Dono (E-mail e Senha)
+  if (urlPath === '/api/dono/config-acesso' && req.method === 'GET') {
+    if (!requireOwnerAuth()) {
+      sendJson(res, 401, { error: 'Acesso restrito ao Dono' });
+      return;
+    }
+    const auth = getAuthData();
+    sendJson(res, 200, {
+      ownerEmail: auth.ownerEmail || 'dono@sorveterialolla.com.br'
+    });
+    return;
+  }
+
+  if (urlPath === '/api/dono/config-acesso' && req.method === 'PUT') {
+    if (!requireOwnerAuth()) {
+      sendJson(res, 401, { error: 'Acesso restrito ao Dono' });
+      return;
+    }
+    try {
+      const raw = await readBody(req);
+      const { email, newPassword, password } = JSON.parse(raw);
+      const auth = getAuthData();
+
+      if (email && String(email).trim().includes('@')) {
+        auth.ownerEmail = String(email).trim().toLowerCase();
+      }
+      const passToSet = newPassword || password;
+      if (passToSet && String(passToSet).length >= 4) {
+        const hash = crypto.createHash('sha256').update(String(passToSet)).digest('hex');
+        auth.ownerPasswordHash = hash;
+        auth.passwordHash = hash;
+        auth.defaultChanged = true;
+      }
+      writeJson(AUTH_FILE, auth);
+      sendJson(res, 200, {
+        success: true,
+        ownerEmail: auth.ownerEmail,
+        message: 'Credenciais de acesso do Dono atualizadas com sucesso!'
+      });
+    } catch (err) {
+      sendJson(res, 500, { error: err.message });
     }
     return;
   }

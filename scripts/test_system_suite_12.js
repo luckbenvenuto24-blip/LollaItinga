@@ -259,6 +259,12 @@ async function runAll12Tests() {
   assert(pedidoDinheiro.status === 201 && pedidoDinheiro.data.pedido.troco_valor === 9.00, 'Dinheiro com cálculo de troco para R$ 50,00 validado');
 
   // Teste cartão na entrega desativado vs ativado
+  await request('PUT', '/api/dono/pagamentos', {
+    dinheiro: { ativo: true },
+    pix: { ativo: true },
+    cartao_entrega: { ativo: false }
+  }, { 'Authorization': `Bearer ${tokenDono}` });
+
   const pedidoCartaoDesativado = await request('POST', '/api/pedidos', {
     cliente_nome: 'Teste Cartão',
     cliente_telefone: '47990001122',
